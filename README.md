@@ -42,9 +42,28 @@ conda activate opencga
 ```
 
 ## Install requirements
-Finally, you will need to install the dependencies in `requirements.txt`
+You will need to install the dependencies in `requirements.txt`
 ```
 pip3 install -r requirements.txt
 ```
+
+## Pull the repository
+Pull the repository to have the python scripts
+```
+git pull
+```
+
+## Create the .env file
+Create the .env file with your credentials in the root directory for IBVL with the following
+```
+export OPENCGA_HOST="http://192.168.21.116:8080/opencga"
+export OPENCGA_USERNAME="username"
+export OPENCGA_PASSWORD="password"
+```
+Source the file
+```
+source .env
+```
+
 
 ---
