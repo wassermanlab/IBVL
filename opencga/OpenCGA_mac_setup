@@ -1,12 +1,35 @@
 To work with OpenCGA on your Mac
 Check if you have Python 3
 
-$python --version
+$ python3 --version
+If it displays an error message then install brew to install python 3 :
+  $ /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install.sh)"
+  $ Password
+  Return key
+  $ Password
 
-If you do not have python 3 running :
-$ /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install.sh)"
-$ Password
-Return key
-$ Password
+  $ brew install python
+  $ python3 --version
+  #Should not display an error message anymore
 
-$ brew install python
+Create an alias to not have to specify python 3
+$ alias python=/usr/local/bin/python3
+$ python --version
+Should display python 3 version (ex : Python 3.9.7)
+
+Install venv for python
+$ pip3 install --upgrade virtualenv
+Create an environment
+$ python3 -m venv venv
+Activate the environment
+$ source venv/bin/activate
+Upgrade pip
+$ python3 -m pip install --upgrade pip
+Install requirements
+$ pip3 install pyopencga==1.4.2.1
+
+
+
+
+
+
