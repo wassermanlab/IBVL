@@ -5,7 +5,8 @@ $python --version
 
 If you do not have python 3 running :
 $ /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install.sh)"
-$Password
+$ Password
 Return key
+$ Password
 
 $ brew install python
