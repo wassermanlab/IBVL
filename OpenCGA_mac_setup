@@ -1,0 +1,11 @@
+To work with OpenCGA on your Mac
+Check if you have Python 3
+
+$python --version
+
+If you do not have python 3 running :
+$ /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install.sh)"
+$Password
+Return key
+
+$ brew install python
