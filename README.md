@@ -53,10 +53,10 @@ Pull the repository to have the python scripts
 git pull
 ```
 
-## Create the .env file
-Ask for the .env file
+## Create the `.env` file
+Ask for the `.env` file
 
-A .env may look like this :
+A `.env` may look like this :
 ```
 export OPENCGA_HOST="http://192.168.21.116:8080/opencga"
 export OPENCGA_USERNAME="username"
