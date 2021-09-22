@@ -54,7 +54,8 @@ git pull
 ```
 
 ## Create the .env file
-Create the .env file with your credentials in the root directory for IBVL with the following
+Ask for the .env file
+A .env may look like this :
 ```
 export OPENCGA_HOST="http://192.168.21.116:8080/opencga"
 export OPENCGA_USERNAME="username"
