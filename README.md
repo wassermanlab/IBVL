@@ -55,6 +55,7 @@ git pull
 
 ## Create the .env file
 Ask for the .env file
+
 A .env may look like this :
 ```
 export OPENCGA_HOST="http://192.168.21.116:8080/opencga"
