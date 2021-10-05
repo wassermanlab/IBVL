@@ -1,4 +1,4 @@
-# IBVL 
+# IBVL - Open CGA installation
 
 ## Software Installation
 ### Install Python3
