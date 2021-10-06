@@ -25,6 +25,10 @@ params.outdir_pop = '/home/correard/scratch/SnakeMake_VariantCalling/Processed/P
 params.ref_genome="/home/correard/scratch/SnakeMake_VariantCalling/snakemake_SNV_full/Homo_sapiens.GRCh37.fa"
 ref_genome_file = file(params.ref_genome)
 
+//For the bwa mem alignemnt step, the ref genome can be located on cvmfs as it is not a singularity process
+// Better to use the one on cvmfs as it is indexed by bwa already
+params.ref_genome_cvmfs="/cvmfs/ref.mugqic/genomes/species/Homo_sapiens.GRCh37/genome/bwa_index/Homo_sapiens.GRCh37.fa"
+ref_genome_cvmfs_file = file(params.ref_genome_cvmfs)
 
 //////////////////////////////////////////////////////////////
 // Data organization - Create the appropriate folders
@@ -64,10 +68,10 @@ process sorted_bam_files {
 	cpus 24
 	time '224h'
 
-	publishDir '${outdir_ind}/BAM/${version}/', mode: 'copy'
+	publishDir "$params.outdir_ind/BAM/${version}/", mode: 'copy'
 
 	input :
-	ref_genome_file
+	ref_genome_cvmfs_file
 	set sampleId, file(reads) from samples_ch
 	val version from params.version
 	path outdir_ind from params.outdir_ind
@@ -78,7 +82,7 @@ process sorted_bam_files {
 
 	script:
 	"""
-	bwa mem -t 8 -R '@RG\\tID:${sampleId}\\tSM:${sampleId}' ${ref_genome_file} ${reads} | samtools view -Sb - | samtools sort -o ${sampleId}_sorted.bam
+	bwa mem -t 8 -R '@RG\\tID:${sampleId}\\tSM:${sampleId}' ${ref_genome_cvmfs_file} ${reads} | samtools view -Sb | samtools sort -o ${sampleId}_sorted.bam
 	
 	samtools index ${sampleId}_sorted.bam
 	"""
@@ -117,7 +121,7 @@ process deepvariant_call {
 	path outdir_ind from params.outdir_ind
 	path outdir_pop from params.outdir_pop
 
-	publishDir '${outdir_ind}/DeepVariant/${version}/', mode: 'copy'
+	publishDir "$params.outdir_ind/DeepVariant/${version}/", mode: 'copy'
 
 	output :
 	file '*.vcf.gz' into deepvariant_call
@@ -142,12 +146,12 @@ process deepvariant_call {
 
 process gvcfs_txt {
 	input :
-	file '*.g.vcf.gz'  from deepvariant_call.toList()
+	file '*.g.vcf.gz'  from deepvariant_call.collect()
 	val version from params.version
 	path outdir_ind from params.outdir_ind
 	path outdir_pop from params.outdir_pop
 
-	publishDir 	publishDir '${outdir_pop}/${version}/', mode: 'copy'
+ 	publishDir "$params.outdir_pop/${version}/", mode: 'copy'
 
 	output :
 	file '*.txt' into gvcfs_txt
@@ -214,19 +218,19 @@ process bcf_to_vcf {
 //Mitochondrial processes
 
 // Get the genome files for the Mitochondrial data calling (non shifted and shifted)
-params.ref_genome="/home/correard/scratch/SnakeMake_VariantCalling/MT/Mutect2/Homo_sapiens_assembly38.chrM.fasta"
-params.ref_genome_shifted="/home/correard/scratch/SnakeMake_VariantCalling/MT/Mutect2/Homo_sapiens_assembly38.chrM.shifted_by_8000_bases.fasta"
-params.ref_genome_index="/home/correard/scratch/SnakeMake_VariantCalling/MT/Mutect2/Homo_sapiens_assembly38.chrM.fasta.fai"
-params.ref_genome_shifted_index="/home/correard/scratch/SnakeMake_VariantCalling/MT/Mutect2/Homo_sapiens_assembly38.chrM.shifted_by_8000_bases.fasta.fai"
-params.ref_genome_dict="/home/correard/scratch/SnakeMake_VariantCalling/MT/Mutect2/Homo_sapiens_assembly38.chrM.dict"
-params.ref_genome_shifted_dict="/home/correard/scratch/SnakeMake_VariantCalling/MT/Mutect2/Homo_sapiens_assembly38.chrM.shifted_by_8000_bases.dict"
+params.ref_genome_MT="/home/correard/scratch/SnakeMake_VariantCalling/MT/Mutect2/Homo_sapiens_assembly38.chrM.fasta"
+params.ref_genome_MT_shifted="/home/correard/scratch/SnakeMake_VariantCalling/MT/Mutect2/Homo_sapiens_assembly38.chrM.shifted_by_8000_bases.fasta"
+params.ref_genome_MT_index="/home/correard/scratch/SnakeMake_VariantCalling/MT/Mutect2/Homo_sapiens_assembly38.chrM.fasta.fai"
+params.ref_genome_MT_shifted_index="/home/correard/scratch/SnakeMake_VariantCalling/MT/Mutect2/Homo_sapiens_assembly38.chrM.shifted_by_8000_bases.fasta.fai"
+params.ref_genome_MT_dict="/home/correard/scratch/SnakeMake_VariantCalling/MT/Mutect2/Homo_sapiens_assembly38.chrM.dict"
+params.ref_genome_MT_shifted_dict="/home/correard/scratch/SnakeMake_VariantCalling/MT/Mutect2/Homo_sapiens_assembly38.chrM.shifted_by_8000_bases.dict"
 
-ref_genome_file = file(params.ref_genome)
-ref_genome_shifted_file = file(params.ref_genome_shifted)
-ref_genome_file_index = file(params.ref_genome_index)
-ref_genome_shifted_file_index = file(params.ref_genome_shifted_index)
-ref_genome_file_dict = file(params.ref_genome_dict)
-ref_genome_shifted_file_dict = file(params.ref_genome_shifted_dict)
+ref_genome_MT_file = file(params.ref_genome_MT)
+ref_genome_MT_shifted_file = file(params.ref_genome_MT_shifted)
+ref_genome_MT_file_index = file(params.ref_genome_MT_index)
+ref_genome_MT_shifted_file_index = file(params.ref_genome_MT_shifted_index)
+ref_genome_MT_file_dict = file(params.ref_genome_MT_dict)
+ref_genome_MT_shifted_file_dict = file(params.ref_genome_MT_shifted_dict)
 
 
 //
@@ -236,16 +240,16 @@ ref_genome_shifted_file_dict = file(params.ref_genome_shifted_dict)
 
 process MT_Index_Reference {
 	input:
-	file ref_genome_file
-	file ref_genome_shifted_file
+	file ref_genome_MT_file
+	file ref_genome_MT_shifted_file
 
 	output :
 	file '*' into MT_Index_Reference
 
 	script:
 	"""
-	bwa index ${ref_genome_file}
-	bwa index ${ref_genome_shifted_file}
+	bwa index ${ref_genome_MT_file}
+	bwa index ${ref_genome_MT_shifted_file}
 	"""
 }
 
@@ -347,15 +351,15 @@ MT_SamtoFastq.into {
 }
 
 //
-//Stap MT 3. Align the reads against the ref genome and the shifted ref genome//
+//Step MT 3. Align the reads against the ref genome and the shifted ref genome//
 //
 
 process align_to_MT {
 	memory '4G'
 
 	input :
-	path fastq from MT_SaMToFastq1
-	path ref_genome_file MT_Index_Reference1
+	path fastq from MT_SamtoFastq1
+	path ref_genome_MT_file from MT_Index_Reference1
 
 	output :
 	file '*' into align_to_MT
@@ -372,8 +376,8 @@ process align_to_shifted_MT {
 	memory '4G'
 
 	input :
-	path fastq from MT_SaMToFastq2
-	path ref_genome_shifted_file from MT_Index_Reference2
+	path fastq from MT_SamtoFastq2
+	path ref_genome_MT_shifted_file from MT_Index_Reference2
 
 	output :
 	file '*' into align_to_shifted_MT
@@ -394,10 +398,10 @@ process MT_call_variants {
 	memory '4G'
 
 	input :
-	file ref_genome_file
-	file ref_genome_file_index
-	file ref_genome_file_dict
-	path ref_genome_file from MT_Index_Reference2
+	file ref_genome_MT_file
+	file ref_genome_MT_file_index
+	file ref_genome_MT_file_dict
+	path ref_genome_MT_file from MT_Index_Reference2
 	path bam_chrM from align_to_MT
 
 	output :
@@ -422,10 +426,10 @@ process MT_call_variants_shifted {
 	memory '4G'
 
 	input :
-	file ref_genome_shifted_file
-	file ref_genome_shifted_file_index
-	file ref_genome_shifted_file_dict
-	path ref_genome_shifted_file from MT_Index_Reference4
+	file ref_genome_MT_shifted_file
+	file ref_genome_MT_shifted_file_index
+	file ref_genome_MT_shifted_file_dict
+	path ref_genome_MT_shifted_file from MT_Index_Reference4
 	path bam_chrM_shifted from align_to_shifted_MT
 
 	output :
@@ -455,9 +459,9 @@ process MT_Filter_Mutect_Calls {
 	memory '4G'
 
 	input :
-	file ref_genome_file
-	file ref_genome_file_index
-	file ref_genome_file_dict
+	file ref_genome_MT_file
+	file ref_genome_MT_file_index
+	file ref_genome_MT_file_dict
 	file vcf_chrM from MT_call_variants
 	
 	output :
@@ -480,9 +484,9 @@ process MT_shifted_Filter_Mutect_Calls {
 	memory '4G'
 
 	input :
-	file ref_genome_shifted_file
-	file ref_genome_shifted_file_index
-	file ref_genome_shifted_file_dict
+	file ref_genome_MT_shifted_file
+	file ref_genome_MT_shifted_file_index
+	file ref_genome_MT_shifted_file_dict
 	file vcf_chrM from MT_call_variants_shifted
 
 	output :
@@ -505,9 +509,9 @@ process MT_LeftAlignAndTrimVariants {
 	memory '4G'
 
 	input :
-	file ref_genome_file
-	file ref_genome_file_index
-	file ref_genome_file_dict
+	file ref_genome_MT_file
+	file ref_genome_MT_file_index
+	file ref_genome_MT_file_dict
 	file vcf_fiiltered_chrM from MT_Filter_Mutect_Calls
 
 	output :
@@ -530,9 +534,9 @@ process MT_LeftAlignAndTrimVariants_shifted {
 	memory '4G'
 
 	input :
-	file ref_genome_shifted_file
-	file ref_genome_shifted_file_index
-	file ref_genome_shifted_file_dict
+	file ref_genome_MT_shifted_file
+	file ref_genome_MT_shifted_file_index
+	file ref_genome_MT_shifted_file_dict
 	file vcf_fiiltered_chrM_shifted from MT_shifted_Filter_Mutect_Calls
 
 	output :
@@ -559,9 +563,9 @@ process MT_keep_nonCR_variants {
 	memory '4G'
 
 	input :
-	file ref_genome_file
-	file ref_genome_file_index
-	file ref_genome_file_dict
+	file ref_genome_MT_file
+	file ref_genome_MT_file_index
+	file ref_genome_MT_file_dict
 	file vcf_fiiltered_trimmed_chrM from MT_LeftAlignAndTrimVariants
 
 	output :
@@ -586,9 +590,9 @@ process MT_keep_CR_variants {
 	memory '4G'
 
 	input :
-	file ref_genome_shifted_file
-	file ref_genome_shifted_file_index
-	file ref_genome_shifted_file_dict
+	file ref_genome_MT_shifted_file
+	file ref_genome_MT_shifted_file_index
+	file ref_genome_MT_shifted_file_dict
 	file vcf_fiiltered_trimmed_shifted_chrM from MT_LeftAlignAndTrimVariants_shifted
 
 	output :
@@ -622,7 +626,7 @@ process MT_shift_variants {
 	output :
 	file '*' into MT_shift_variants
 
-	publishDir '${outdir_ind}/Mutect2/${version}/', glob :'*_chrM_Mutect2_filtered_trimmed_sorted.vcf.gz', mode: 'copy'
+	publishDir "$params.outdir_ind/Mutect2/${version}/", glob :'*_chrM_Mutect2_filtered_trimmed_sorted.vcf.gz', mode: 'copy'
 
 	script :
 	"""
@@ -657,7 +661,7 @@ process MT_merge_samples {
 	output:
 	file '*' into MT_merge_samples
 
-	publishDir '${outdir_pop}/${version}/', mode: 'copy'
+	publishDir "$params.outdir_pop/${version}/", mode: 'copy'
 
 	script :
 	"""
@@ -684,7 +688,7 @@ process annotate_vcf {
 	output :
 	file '*' into annotate_vcf
 
-	publishDir '${outdir_pop}/${version}/', mode: 'copy'
+	publishDir "$params.outdir_pop/${version}/", mode: 'copy'
 
 	script :
 	"""
@@ -700,5 +704,6 @@ process annotate_vcf {
 	bgzip -c ${vcf_file}_${version}_annotated.vcf > ${vcf_file}_${version}_annotated.vcf.gz
 	"""
 }
+
 
 
