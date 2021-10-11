@@ -17,4 +17,4 @@ module load bwa
 module load samtools
 module load bcftools
 
-nextflow run Nextflow_SNV_MT_211004_1332.nf -resume -with-trace
+nextflow run Nextflow_SNV_MT_211009.nf -resume -with-trace
