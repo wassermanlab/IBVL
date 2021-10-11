@@ -9,7 +9,7 @@
 // Common part again : Variant annotation using VEP
 
 //The version will be defined by the date when the process was started (As it will be a several days process, start day and end day may be different) - format : AAAAMMDD
-params.version="20211005"
+params.version="20211009"
 
 // Define the path
 //Path to fastq folder (input)
@@ -54,9 +54,10 @@ process folder_creation {
 
 Channel
     .fromFilePairs(params.fastq)
-    .view()
     .ifEmpty { error "Cannot find any reads matching: ${params.reads}" }
     .set { samples_ch }
+
+// In order to view the files added to the channel, it is possible to add .view() but it HAS TO BE the line after fromFilePairs (Second line)
 
 //
 // Step Alignment 1. fastq alignment with bwa mem 
@@ -78,7 +79,8 @@ process sorted_bam_files {
 	path outdir_pop from params.outdir_pop
 
 	output :
-	file '*' into sorted_bam_files
+	file '*.bam' into sorted_bam_files
+	file '*.bai' into sorted_bam_files_index
 
 	script:
 	"""
@@ -88,18 +90,15 @@ process sorted_bam_files {
 	"""
 }
 
-
-Channel
-    .fromFilePairs('${outdir_ind}/BAM/${version}/*.{bam,bai}') { file -> file.name.replaceAll(/.bam|.bai$/,'') }
-    .set { samples_bam_ch }
-//	.view()
-
-samples_bam_ch.into {
-	samples_bam_ch1
-	samples_bam_ch2
-	samples_bam_ch3
+sorted_bam_files.into {
+        sorted_bam_files1
+        sorted_bam_files2
 }
 
+sorted_bam_files_index.into {
+        sorted_bam_files_index1
+        sorted_bam_files_index2
+}
 
 //////////////////////////////////////////////////////////////
 //SNV Calling
@@ -116,10 +115,11 @@ process deepvariant_call {
 
 	input :
 	ref_genome_file
-	set sample_bam_id, file(ordered_bam) from samples_bam_ch1
-	val version from params.version
-	path outdir_ind from params.outdir_ind
-	path outdir_pop from params.outdir_pop
+        file (bam) from sorted_bam_files1
+        file (index) from sorted_bam_files_index1
+        val version from params.version
+        path outdir_ind from params.outdir_ind
+        path outdir_pop from params.outdir_pop
 
 	publishDir "$params.outdir_ind/DeepVariant/${version}/", mode: 'copy'
 
@@ -128,14 +128,15 @@ process deepvariant_call {
 
 	script:
 	"""
-	singularity exec -B /home -B /project -B /scratch -B /localscratch /home/correard/scratch/SnakeMake_VariantCalling/snakemake-deepvariant/deepvariant.sif \
-	/opt/deepvariant/bin/run_deepvariant \
-	--model_type=WGS \
-	--ref=${ref_genome_file} \
-	--reads=${sample_bam_id}.bam \
-	--regions "20" \
-	--output_gvcf=${sample_bam_id}.g.vcf.gz \
-	--output_vcf=${sample_bam_id}.vcf.gz
+        echo ${bam.simpleName}
+        singularity exec -B /home -B /project -B /scratch -B /localscratch /home/correard/scratch/SnakeMake_VariantCalling/snakemake-deepvariant/deepvariant.sif \
+        /opt/deepvariant/bin/run_deepvariant \
+        --model_type=WGS \
+        --ref=${ref_genome_file} \
+        --reads=${bam.simpleName}.bam \
+        --regions "20" \
+        --output_gvcf=${bam.simpleName}.g.vcf.gz \
+        --output_vcf=${bam.simpleName}.vcf.gz
 	"""
 }
 
@@ -184,7 +185,7 @@ process GLnexus_cli {
 	singularity exec -B /home -B /project -B /scratch -B /localscratch /home/correard/scratch/SnakeMake_VariantCalling/snakemake-GLnexus/GLnexus.sif \
 	glnexus_cli \
 	--config DeepVariant \
-	--list ${list_gvcf} > ${version}.bcf
+	--list ${list_gvcf} > DeepVariant_GLnexus_${version}.bcf
 	"""
 }
 
@@ -207,7 +208,8 @@ process bcf_to_vcf {
 
 	script :
 	"""
-	bcftools view ${bcf_file} | bgzip -c > ${version}.vcf.gz
+	echo ${bcf_file.simpleName}
+	bcftools view ${bcf_file} | bgzip -c > ${bcf_file.simpleName}.vcf.gz
 	"""
 }
 
@@ -272,22 +274,24 @@ process Extract_MT_Read {
 	memory '4G'
 
 	input :
-	set sample_bam_id, file(ordered_bam) from samples_bam_ch2
+        file (bam) from sorted_bam_files2
+        file (index) from sorted_bam_files_index2
 
 	output :
 	file '*_chrM.bam' into Extract_MT_Read
 
 	script :
 	"""
-	singularity exec -B /home -B /project -B /scratch -B /localscratch /home/correard/scratch/SnakeMake_VariantCalling/MT/Mutect2/gatk.sif \
-	gatk --java-options "-Xmx4G" \
-	PrintReads \
-	-L MT \
-	--read-filter MateOnSameContigOrNoMappedMateReadFilter \
-	--read-filter MateUnmappedAndUnmappedReadFilter \
-	-I ${ordered_bam} \
-	--read-index ${sample_id}.bam.bai \
-	-O ${sample_id}_chrM.bam
+	 echo ${bam.simpleName}
+        singularity exec -B /home -B /project -B /scratch -B /localscratch /home/correard/scratch/SnakeMake_VariantCalling/MT/Mutect2/gatk.sif \
+        gatk --java-options "-Xmx4G" \
+        PrintReads \
+        -L MT \
+        --read-filter MateOnSameContigOrNoMappedMateReadFilter \
+        --read-filter MateUnmappedAndUnmappedReadFilter \
+        -I ${bam.simpleName}.bam \
+        --read-index ${bam.simpleName}.bam.bai \
+        -O ${bam.simpleName}_chrM.bam
 	"""
 }
 
@@ -295,27 +299,26 @@ process MT_Revert_Sam {
 	memory '4G'
 
 	input :
-	path bam_chrM from Extract_MT_Read
-	set sample_bam_id, file(ordered_bam) from samples_bam_ch3
+	file(chr_bam) from Extract_MT_Read
 
 	output :
 	file '*_chrM_RevertSam.bam' into MT_Revert_Sam
 
 	script :
 	"""
-	echo ${sample_id} 
+	echo ${chr_bam.baseName} 
 	java -jar $EBROOTPICARD/picard.jar \
 	RevertSam \
- 	INPUT=${sample_id}_chrM.bam \
+ 	INPUT=${chr_bam.baseName}.bam \
  	OUTPUT_BY_READGROUP=false \
- 	OUTPUT=${sample_id}_chrM_RevertSam.bam \
+ 	OUTPUT=${chr_bam.baseName}_RevertSam.bam \
  	VALIDATION_STRINGENCY=LENIENT \
  	ATTRIBUTE_TO_CLEAR=FT \
  	ATTRIBUTE_TO_CLEAR=CO \
   	SORT_ORDER=queryname \
  	RESTORE_ORIGINAL_QUALITIES=false
 
-	samtools index ${sample_id}_chrM_RevertSam.bam
+	samtools index ${chr_bam.baseName}_RevertSam.bam
 	"""
 }
 
@@ -329,17 +332,18 @@ process MT_SamtoFastq {
 	memory '4G'
 
 	input :
-	path bam_reverted from MT_Revert_Sam2
+        file(revertSam_bam) from MT_Revert_Sam1
 
 	output :
 	file '*_chrM_RevertSam.fastq' into MT_SamtoFastq
 
 	script :
 	"""
+	echo ${revertSam_bam.baseName}
 	java -jar $EBROOTPICARD/picard.jar \
-	SamtoFastq \
-	INPUT=${sample_id}_chrM_RevertSam.bam \
-	FASTQ=${sample_id}_chrM_RevertSam.fastq \
+	SamToFastq \
+	INPUT=${revertSam_bam.baseName}.bam \
+	FASTQ=${revertSam_bam.baseName}.fastq \
 	INTERLEAVE=true \
 	NON_PF=true
 	"""
@@ -358,17 +362,19 @@ process align_to_MT {
 	memory '4G'
 
 	input :
-	path fastq from MT_SamtoFastq1
 	path ref_genome_MT_file from MT_Index_Reference1
+	file(fastqfromsam) from MT_SamtoFastq1
 
 	output :
-	file '*' into align_to_MT
+	file '*_chrM.bam' into align_to_MT_bam
+	file '*_chrM.bam.bai' into align_to_MT_bai
 
 	script:
 	 """
-	bwa mem -R "@RG\\tID:${sample_id}\\tSM:${sample_id}\\tPL:illumina" Homo_sapiens_assembly38.chrM.fasta ${sample_id}_chrM_RevertSam.fastq | samtools view -u -bS | samtools sort > ${sample_id}_chrM_RevertSam_chrM.bam
+	 echo ${fastqfromsam.baseName}
+	bwa mem -R "@RG\\tID:${fastqfromsam.baseName}\\tSM:${fastqfromsam.baseName}\\tPL:illumina" Homo_sapiens_assembly38.chrM.fasta ${fastqfromsam.baseName}.fastq | samtools view -u -bS | samtools sort > ${fastqfromsam.baseName}_chrM.bam
 
-	samtools index ${sample_id}_chrM_RevertSam_chrM.bam
+	samtools index ${fastqfromsam.baseName}_chrM.bam
 	"""
 }
 
@@ -376,17 +382,18 @@ process align_to_shifted_MT {
 	memory '4G'
 
 	input :
-	path fastq from MT_SamtoFastq2
 	path ref_genome_MT_shifted_file from MT_Index_Reference2
+        file(fastqfromsam) from MT_SamtoFastq2
 
 	output :
-	file '*' into align_to_shifted_MT
+	file '*_chrM_shifted.bam' into align_to_shifted_MT_bam
+	file '*_chrM_shifted.bam.bai' into align_to_shifted_MT_bai
 
 	script:
 	"""
-	bwa mem -R "@RG\\tID:${sample_id}\\tSM:${sample_id}\\tPL:illumina" Homo_sapiens_assembly38.chrM.shifted_by_8000_bases.fasta ${sample_id}_chrM_RevertSam.fastq | samtools view -u -bS | samtools sort > ${sample_id}_chrM_RevertSam_chrM_shifted.bam
+	bwa mem -R "@RG\\tID:${fastqfromsam.baseName}\\tSM:${fastqfromsam.baseName}\\tPL:illumina" Homo_sapiens_assembly38.chrM.shifted_by_8000_bases.fasta ${fastqfromsam.baseName}.fastq | samtools view -u -bS | samtools sort > ${fastqfromsam.baseName}_chrM_shifted.bam
 
-	samtools index ${sample_id}_chrM_RevertSam_chrM_shifted.bam
+	samtools index ${fastqfromsam.baseName}_chrM_shifted.bam
 	"""
 }
 
@@ -402,23 +409,26 @@ process MT_call_variants {
 	file ref_genome_MT_file_index
 	file ref_genome_MT_file_dict
 	path ref_genome_MT_file from MT_Index_Reference2
-	path bam_chrM from align_to_MT
+	file(bam_MT) from align_to_MT_bam
+	file(bai_MT) from align_to_MT_bai
 
 	output :
-	file '*' into MT_call_variants
+	file '*_Mutect2.vcf.gz' into MT_call_variants
+	file '*_Mutect2.vcf.gz.*' into MT_call_variants_index
 
 	script:
 	"""
+	echo ${bam_MT.simpleName}
 	singularity exec -B /home -B /project -B /scratch -B /localscratch /home/correard/scratch/SnakeMake_VariantCalling/MT/Mutect2/gatk.sif \
 	gatk Mutect2 \
 	-R Homo_sapiens_assembly38.chrM.fasta \
-	-I ${sample_id}_chrM_RevertSam_chrM.bam \
+	-I ${bam_MT.simpleName}.bam \
 	-L chrM \
 	--mitochondria-mode \
 	--annotation StrandBiasBySample \
 	--max-reads-per-alignment-start 75 \
 	--max-mnp-distance 0 \
-	-O ${sample_id}_chrM_RevertSam_chrM_Mutect2.vcf.gz
+	-O ${bam_MT.simpleName}_Mutect2.vcf.gz
 	"""
 }
 
@@ -430,23 +440,26 @@ process MT_call_variants_shifted {
 	file ref_genome_MT_shifted_file_index
 	file ref_genome_MT_shifted_file_dict
 	path ref_genome_MT_shifted_file from MT_Index_Reference4
-	path bam_chrM_shifted from align_to_shifted_MT
-
+	file(shifted_MT_bam) from align_to_shifted_MT_bam
+	file(shifted_MT_bai) from align_to_shifted_MT_bai
+	
 	output :
-	file '*' into MT_call_variants_shifted
+	file '*_Mutect2.vcf.gz' into MT_call_variants_shifted
+	file '*_Mutect2.vcf.gz.*' into MT_call_variants_shifted_index
 
 	script:
 	"""
+	echo ${shifted_MT_bam.simpleName}
 	singularity exec -B /home -B /project -B /scratch -B /localscratch /home/correard/scratch/SnakeMake_VariantCalling/MT/Mutect2/gatk.sif \
 	gatk Mutect2 \
 	-R Homo_sapiens_assembly38.chrM.shifted_by_8000_bases.fasta \
-	-I ${sample_id}_chrM_RevertSam_chrM_shifted.bam \
+	-I ${shifted_MT_bam.simpleName}.bam \
 	-L chrM \
 	--mitochondria-mode \
 	--annotation StrandBiasBySample \
 	--max-reads-per-alignment-start 75 \
 	--max-mnp-distance 0 \
-	-O ${sample_id}_chrM_RevertSam_chrM_shifted_Mutect2.vcf.gz
+	-O ${shifted_MT_bam.simpleName}_Mutect2.vcf.gz
 	"""
 }
 
@@ -463,20 +476,23 @@ process MT_Filter_Mutect_Calls {
 	file ref_genome_MT_file_index
 	file ref_genome_MT_file_dict
 	file vcf_chrM from MT_call_variants
-	
+	file vcf_chrM_index from MT_call_variants_index
+
 	output :
-	file '*' into MT_Filter_Mutect_Calls
+	file '*_filtered.vcf.gz' into MT_Filter_Mutect_Calls
+	file '*_filtered.vcf.gz.*' into MT_Filter_Mutect_Calls_index
 
 	script :
 	"""
+	echo ${vcf_chrM.simpleName}
 	singularity exec -B /home -B /project -B /scratch -B /localscratch /home/correard/scratch/SnakeMake_VariantCalling/MT/Mutect2/gatk.sif \
 	gatk FilterMutectCalls \
-	-V ${sample_id}_chrM_RevertSam_chrM_Mutect2.vcf.gz \
+	-V ${vcf_chrM.simpleName}.vcf.gz \
 	-R Homo_sapiens_assembly38.chrM.fasta \
-	--stats ${sample_id}_chrM_RevertSam_chrM_Mutect2.vcf.gz.stats \
+	--stats ${vcf_chrM.simpleName}.vcf.gz.stats \
 	--max-alt-allele-count 4 \
 	--mitochondria-mode \
-	-O ${sample_id}_chrM_RevertSam_chrM_Mutect2_filtered.vcf.gz
+	-O ${vcf_chrM.simpleName}_filtered.vcf.gz
 	"""
 }
 
@@ -487,21 +503,24 @@ process MT_shifted_Filter_Mutect_Calls {
 	file ref_genome_MT_shifted_file
 	file ref_genome_MT_shifted_file_index
 	file ref_genome_MT_shifted_file_dict
-	file vcf_chrM from MT_call_variants_shifted
+	file vcf_chrM_shifted from MT_call_variants_shifted
+        file vcf_chrM_shifted_index from MT_call_variants_shifted_index
 
 	output :
-	file '*' into MT_shifted_Filter_Mutect_Calls
+	file '*_filtered.vcf.gz' into MT_shifted_Filter_Mutect_Calls
+	file '*_filtered.vcf.gz.*' into MT_shifted_Filter_Mutect_Calls_index
 
 	script :
 	"""
+	echo ${vcf_chrM_shifted.simpleName}
 	singularity exec -B /home -B /project -B /scratch -B /localscratch /home/correard/scratch/SnakeMake_VariantCalling/MT/Mutect2/gatk.sif \
 	gatk FilterMutectCalls \
-	-V ${sample_id}_chrM_RevertSam_chrM_shifted_Mutect2.vcf.gz \
+	-V ${vcf_chrM_shifted.simpleName}.vcf.gz \
 	-R Homo_sapiens_assembly38.chrM.shifted_by_8000_bases.fasta \
-	--stats ${sample_id}_chrM_RevertSam_chrM_shifted_Mutect2.vcf.gz.stats \
+	--stats ${vcf_chrM_shifted.simpleName}.vcf.gz.stats \
 	--max-alt-allele-count 4 \
 	--mitochondria-mode \
-	-O ${sample_id}_chrM_RevertSam_chrM_shifted_Mutect2_filtered.vcf.gz
+	-O ${vcf_chrM_shifted.simpleName}_filtered.vcf.gz
 	"""
 }
 
@@ -513,17 +532,20 @@ process MT_LeftAlignAndTrimVariants {
 	file ref_genome_MT_file_index
 	file ref_genome_MT_file_dict
 	file vcf_fiiltered_chrM from MT_Filter_Mutect_Calls
+	file vcf_fiiltered_chrM_index from MT_Filter_Mutect_Calls_index
 
 	output :
-	file '*' into MT_LeftAlignAndTrimVariants
-	
+	file '*_trimmed.vcf.gz' into MT_LeftAlignAndTrimVariants
+	file '*_trimmed.vcf.gz.*' into MT_LeftAlignAndTrimVariants_index
+
 	script :
 	"""
+	echo ${vcf_fiiltered_chrM.simpleName}
 	singularity exec -B /home -B /project -B /scratch -B /localscratch /home/correard/scratch/SnakeMake_VariantCalling/MT/Mutect2/gatk.sif \
 	gatk LeftAlignAndTrimVariants \
 	-R Homo_sapiens_assembly38.chrM.fasta \
-	-V ${sample_id}_chrM_RevertSam_chrM_Mutect2_filtered.vcf.gz \
-	-O ${sample_id}_chrM_RevertSam_chrM_Mutect2_filtered_trimmed.vcf.gz \
+	-V ${vcf_fiiltered_chrM.simpleName}.vcf.gz \
+	-O ${vcf_fiiltered_chrM.simpleName}_trimmed.vcf.gz \
 	--split-multi-allelics \
 	--dont-trim-alleles \
 	--keep-original-ac
@@ -538,17 +560,20 @@ process MT_LeftAlignAndTrimVariants_shifted {
 	file ref_genome_MT_shifted_file_index
 	file ref_genome_MT_shifted_file_dict
 	file vcf_fiiltered_chrM_shifted from MT_shifted_Filter_Mutect_Calls
+	file vcf_fiiltered_chrM_shifted_index from MT_shifted_Filter_Mutect_Calls_index
 
 	output :
-	file '*' into MT_LeftAlignAndTrimVariants_shifted
-
+	file '*_trimmed.vcf.gz' into MT_LeftAlignAndTrimVariants_shifted
+	file '*_trimmed.vcf.gz.*' into MT_LeftAlignAndTrimVariants_shifted_index
+	
 	script :
 	"""
+	echo ${vcf_fiiltered_chrM_shifted.simpleName}
 	singularity exec -B /home -B /project -B /scratch -B /localscratch /home/correard/scratch/SnakeMake_VariantCalling/MT/Mutect2/gatk.sif \
 	gatk LeftAlignAndTrimVariants \
 	-R Homo_sapiens_assembly38.chrM.shifted_by_8000_bases.fasta \
-	-V ${sample_id}_chrM_RevertSam_chrM_shifted_Mutect2_filtered.vcf.gz \
-	-O ${sample_id}_chrM_RevertSam_chrM_shifted_Mutect2_filtered_trimmed.vcf.gz \
+	-V ${vcf_fiiltered_chrM_shifted.simpleName}.vcf.gz \
+	-O ${vcf_fiiltered_chrM_shifted.simpleName}_trimmed.vcf.gz \
 	--split-multi-allelics \
 	--dont-trim-alleles \
 	--keep-original-ac
@@ -567,17 +592,19 @@ process MT_keep_nonCR_variants {
 	file ref_genome_MT_file_index
 	file ref_genome_MT_file_dict
 	file vcf_fiiltered_trimmed_chrM from MT_LeftAlignAndTrimVariants
+	file vcf_fiiltered_trimmed_chrM_index from MT_LeftAlignAndTrimVariants_index
 
 	output :
-	file '*' into MT_keep_nonCR_variants
+	file '*_NonControlRegion.vcf.gz' into MT_keep_nonCR_variants
 
 	script :
 	"""	
+	echo ${vcf_fiiltered_trimmed_chrM.simpleName}
 	singularity exec -B /home -B /project -B /scratch -B /localscratch /home/correard/scratch/SnakeMake_VariantCalling/MT/Mutect2/gatk.sif \
 	gatk SelectVariants \
 	-R Homo_sapiens_assembly38.chrM.fasta \
-	-V ${sample_id}_chrM_RevertSam_chrM_Mutect2_filtered_trimmed.vcf.gz \
-	-O ${sample_id}_chrM_RevertSam_chrM_Mutect2_filtered_trimmed_NonControlRegion.vcf.gz \
+	-V ${vcf_fiiltered_trimmed_chrM.simpleName}.vcf.gz \
+	-O ${vcf_fiiltered_trimmed_chrM.simpleName}_NonControlRegion.vcf.gz \
 	-L chrM:576-16024
 	"""
 }
@@ -594,17 +621,20 @@ process MT_keep_CR_variants {
 	file ref_genome_MT_shifted_file_index
 	file ref_genome_MT_shifted_file_dict
 	file vcf_fiiltered_trimmed_shifted_chrM from MT_LeftAlignAndTrimVariants_shifted
+        file vcf_fiiltered_trimmed_shifted_chrM_index from MT_LeftAlignAndTrimVariants_shifted_index
+
 
 	output :
-	file '*' into MT_keep_CR_variants
+	file '*_ControlRegion.vcf.gz' into MT_keep_CR_variants
 
 	script :
 	"""
+	echo ${vcf_fiiltered_trimmed_shifted_chrM.simpleName}
 	singularity exec -B /home -B /project -B /scratch -B /localscratch /home/correard/scratch/SnakeMake_VariantCalling/MT/Mutect2/gatk.sif \
 	gatk SelectVariants \
 	-R Homo_sapiens_assembly38.chrM.shifted_by_8000_bases.fasta \
-	-V ${sample_id}_chrM_RevertSam_chrM_shifted_Mutect2_filtered_trimmed.vcf.gz \
-	-O ${sample_id}_chrM_RevertSam_chrM_shifted_Mutect2_filtered_trimmed_ControlRegion.vcf.gz \
+	-V ${vcf_fiiltered_trimmed_shifted_chrM.simpleName}.vcf.gz \
+	-O ${vcf_fiiltered_trimmed_shifted_chrM.simpleName}_ControlRegion.vcf.gz \
 	-L chrM:7455-8576
 	"""
 }
@@ -621,28 +651,35 @@ process MT_shift_variants {
 
 	input :
 	file vcf_fiiltered_trimmed_CR_region_chrM from MT_keep_CR_variants
-	file vcf_fiiltered_trimmed_nonCR_region_chrM from MT_keep_nonCR_variants
+	file vcf_fiiltered_trimmed_nonCR_region_chrM from MT_keep_nonCR_variants.collect()
+        val version from params.version
+        path outdir_ind from params.outdir_ind
 
 	output :
-	file '*' into MT_shift_variants
+	file '*_merged1_sorted.vcf.gz' into MT_shift_variants
+	file '*_merged1_sorted.vcf.gz.*' into MT_shift_variants_index
 
 	publishDir "$params.outdir_ind/Mutect2/${version}/", glob :'*_chrM_Mutect2_filtered_trimmed_sorted.vcf.gz', mode: 'copy'
 
 	script :
 	"""
-	gzip -cd ${sample_id}_chrM_RevertSam_chrM_shifted_Mutect2_filtered_trimmed_ControlRegion.vcf.gz | sed '/^#/d'  | gzip -c > ${sample_id}_chrM_RevertSam_chrM_shifted_Mutect2_filtered_trimmed_ControlRegion_NoHeader.vcf.gz
+	echo ${vcf_fiiltered_trimmed_CR_region_chrM.simpleName}
+	sample_name=\$(echo ${vcf_fiiltered_trimmed_CR_region_chrM.simpleName} | cut -d _ -f 1)
+	echo \$sample_name
+	echo ${vcf_fiiltered_trimmed_nonCR_region_chrM.simpleName}
+	gzip -cd ${vcf_fiiltered_trimmed_CR_region_chrM.simpleName}.vcf.gz | sed '/^#/d'  | gzip -c > ${vcf_fiiltered_trimmed_CR_region_chrM.simpleName}_NoHeader.vcf.gz
 
-	gzip -cd ${sample_id}_chrM_RevertSam_chrM_shifted_Mutect2_filtered_trimmed_ControlRegion.vcf.gz | grep ^# | gzip -c  > ${sample_id}_chrM_RevertSam_chrM_shifted_Mutect2_filtered_trimmed_ControlRegion_Header.vcf.gz
+	gzip -cd ${vcf_fiiltered_trimmed_CR_region_chrM.simpleName}.vcf.gz | grep ^# | gzip -c  > ${vcf_fiiltered_trimmed_CR_region_chrM.simpleName}_Header.vcf.gz
 
-	gzip -cd ${sample_id}_chrM_RevertSam_chrM_shifted_Mutect2_filtered_trimmed_ControlRegion_NoHeader.vcf.gz | awk ' \$2>=8001 {print \$1"\t"\$2-8000"\t"\$3"\t"\$4"\t"\$5"\t"\$6"\t"\$7"\t"\$8"\t"\$9"\t"\$10} \$2<=8000 {print \$1"\t"\$2+8569"\t"\$3"\t"\$4"\t"\$5"\t"\$6"\t"\$7"\t"\$8"\t"\$9"\t"\$10} ' | gzip -c  > ${sample_id}_chrM_RevertSam_chrM_shifted_Mutect2_filtered_trimmed_ControlRegion_NoHeader_ShiftedBack.vcf.gz
+	gzip -cd ${vcf_fiiltered_trimmed_CR_region_chrM.simpleName}_NoHeader.vcf.gz | awk ' \$2>=8001 {print \$1"\t"\$2-8000"\t"\$3"\t"\$4"\t"\$5"\t"\$6"\t"\$7"\t"\$8"\t"\$9"\t"\$10} \$2<=8000 {print \$1"\t"\$2+8569"\t"\$3"\t"\$4"\t"\$5"\t"\$6"\t"\$7"\t"\$8"\t"\$9"\t"\$10} ' | gzip -c  > ${vcf_fiiltered_trimmed_CR_region_chrM.simpleName}_NoHeader_ShiftedBack.vcf.gz
 	
-	cat ${sample_id}_chrM_RevertSam_chrM_Mutect2_filtered_trimmed_NonControlRegion.vcf.gz ${sample_id}_chrM_RevertSam_chrM_shifted_Mutect2_filtered_trimmed_ControlRegion_NoHeader_ShiftedBack.vcf.gz > ${sample_id}_chrM_Mutect2_filtered_trimmed.vcf.gz
+	cat \${sample_name}_sorted_chrM_RevertSam_chrM_Mutect2_filtered_trimmed_NonControlRegion.vcf.gz ${vcf_fiiltered_trimmed_CR_region_chrM.simpleName}_NoHeader_ShiftedBack.vcf.gz > ${vcf_fiiltered_trimmed_CR_region_chrM.simpleName}_merged1.vcf.gz
 
-	bcftools sort ${sample_id}_chrM_Mutect2_filtered_trimmed.vcf.gz -O z -o ${sample_id}_chrM_Mutect2_filtered_trimmed_sorted.vcf.gz
+	bcftools sort ${vcf_fiiltered_trimmed_CR_region_chrM.simpleName}_merged1.vcf.gz -O z -o ${vcf_fiiltered_trimmed_CR_region_chrM.simpleName}_merged1_sorted.vcf.gz
 
 	singularity exec -B /home -B /project -B /scratch -B /localscratch /home/correard/scratch/SnakeMake_VariantCalling/MT/Mutect2/gatk.sif \
    gatk IndexFeatureFile \
-   -I ${sample_id}_chrM_Mutect2_filtered_trimmed_sorted.vcf.gz
+   -I ${vcf_fiiltered_trimmed_CR_region_chrM.simpleName}_merged1_sorted.vcf.gz
 	"""
 }
 
@@ -650,22 +687,42 @@ process MT_shift_variants {
 //Merge the samples
 //
 
+//List the files to merge
+
+process MT_vcfs_txt {
+        input :
+        file '*_merged1_sorted.vcf.gz' from MT_shift_variants.collect()
+        val version from params.version
+        path outdir_ind from params.outdir_ind
+        path outdir_pop from params.outdir_pop
+
+        publishDir "$params.outdir_pop/${version}/", mode: 'copy'
+
+        output :
+        file '*.txt' into MT_vcfs_txt
+
+        script:
+        """
+        find $params.outdir_ind/Mutect2/ -name "*_merged1_sorted.vcf.gz" > MT_vcfs.txt
+        """
+}
+
 process MT_merge_samples {
 	 memory '4G'
 
 	input :
-	file vcf_individuals from MT_shift_variants
+	file (list_MT_vcf) from MT_vcfs_txt
 	val version from params.version
 	path outdir_pop from params.outdir_pop
-
+        
 	output:
-	file '*' into MT_merge_samples
+	file '*_filtered.vcf.gz' into MT_merge_samples
 
 	publishDir "$params.outdir_pop/${version}/", mode: 'copy'
 
 	script :
 	"""
-	bcftools merge *_chrM_Mutect2_filtered_trimmed_sorted.vcf.gz -O z -o merged_chrM_Mutect2_filtered.vcf.gz
+	bcftools merge -l ${list_MT_vcf} -O z -o ${version}_merged_chrM_Mutect2_filtered.vcf.gz
 	"""
 }
 
@@ -692,16 +749,17 @@ process annotate_vcf {
 
 	script :
 	"""
+	echo ${vcf_file.simpleName}
 	singularity exec -B /home -B /project -B /scratch -B /localscratch /home/correard/scratch/SnakeMake_VariantCalling/snakemake-VEP/vep.sif \
 	vep \
 	-i ${vcf_file} \
-	-o ${vcf_file}_${version}_annotated.vcf \
+	-o ${vcf_file.simpleName}_${version}_annotated.vcf \
 	--cache \
 	--dir_cache /home/correard/scratch/SnakeMake_VariantCalling/snakemake-VEP/vep_cache \
 	--everything \
 	--vcf
 
-	bgzip -c ${vcf_file}_${version}_annotated.vcf > ${vcf_file}_${version}_annotated.vcf.gz
+	bgzip -c ${vcf_file.simipleName}_${version}_annotated.vcf > ${vcf_file.simpleName}_${version}_annotated.vcf.gz
 	"""
 }
 
