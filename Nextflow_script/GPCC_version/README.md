@@ -57,8 +57,6 @@ mosdepth?
 
 #### SV callsQC
   ?
-  
-  
 
 #### Agregator of QC results
   MultiQC
@@ -68,11 +66,17 @@ mosdepth?
   	bwa mem -t 8 -R '@RG\\tID:${sampleId}\\tSM:${sampleId}' ${ref_genome_cvmfs_file} ${reads} | samtools view -Sb | samtools sort -o ${sampleId}_sorted.bam
 
   Piping the sam into bam and sorting allows to not save the sam file
+  
+  
   Bwa additional options : http://bio-bwa.sourceforge.net/bwa.shtml
+  
   -t INT	Number of threads : Should be changed for GPCC?
+  
   -R STR	Complete read group header line. ’\t’ can be used in STR and will be converted to a TAB in the output SAM. The read group ID will be attached to every read in the output. An example is ’@RG\tID:foo\tSM:bar’. 
   
+  
   Samtools options : http://www.htslib.org/doc/samtools-view.html
+  
   -S The -S indicates the input is in SAM format and the "b" indicates that you'd like BAM output.
   Ignored for compatibility with previous samtools versions. Previously this option was required if input was in SAM format, but now the correct format is automatically detected by examining the first few characters of input.
   --> Try to remove it and compare outputs.
