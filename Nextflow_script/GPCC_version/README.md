@@ -81,3 +81,17 @@ mosdepth?
   Ignored for compatibility with previous samtools versions. Previously this option was required if input was in SAM format, but now the correct format is automatically detected by examining the first few characters of input.
   --> Try to remove it and compare outputs.
   
+  
+  ### SNV calling
+  
+  #### DeepVariant
+  
+  Deepvariant performs better than other tools such as GATK
+  
+  DeepVariant flags : https://cloud.google.com/life-sciences/docs/tutorials/deepvariant
+  
+   #### GLnexus
+  
+  GLnexus is advised for joint calling following calling with DeepVariant
+  
+  GLnexus options : To find
