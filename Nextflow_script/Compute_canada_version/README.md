@@ -10,4 +10,9 @@ This readme is for everyone to comment on things to add / modify in the script
 
 Details are available here : https://www.nextflow.io/docs/latest/tracing.html
 
---resume --with-trace --with-report
+nextflow log <run name> --resume -with-report [file name] --with-trace -with-timeline [file name] -with-dag flowchart.png
+  
+
+## .nf script
+
+  
