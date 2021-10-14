@@ -28,5 +28,40 @@ executor {
 }
   
 ## .nf file
+
+### QC
+  
+  #### Fastq QC
+  
+  fastqc https://www.bioinformatics.babraham.ac.uk/projects/fastqc/
+  
+  Would be great to use a second one?
+  
+  #### Bam QC
+  Bam : 
+
+Picard CollectWgsMetrics      
+
+Picard BamIndexStats  
+
+PICARD CollectAlignmentSummaryMetrics   
+
+PICARD QualityScoreDistribution   
+
+mosdepth? 
+
+#### SNV calls QC
+  VEP ?
+
+#### MT calls QC
+  VEP?
+
+#### SV callsQC
+  ?
+  
+  
+
+#### Agregator of QC results
+  MultiQC
   
   
