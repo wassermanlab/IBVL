@@ -4,16 +4,16 @@
 This readme is for everyone to comment on things to add / modify in the script
 
 
-## .sh file
+# .sh file
 
-### Which tracing and vizualisation to use
+## Which tracing and vizualisation to use
 
 Details are available here : https://www.nextflow.io/docs/latest/tracing.html
 
 nextflow log <run name> --resume -with-report [file name] --with-trace -with-timeline [file name] -with-dag flowchart.png
   
 
-## .config file
+# .config file
 
 Full list available here : https://www.nextflow.io/docs/latest/config.html
   
@@ -32,10 +32,10 @@ executor {
     queueSize = 20
 }
   
-## .nf file
+# .nf file
 
   
-  ### Alignment (Fastq --> Bam)
+  ## Alignment (Fastq --> Bam)
   
   	bwa mem -t 8 -R '@RG\\tID:${sampleId}\\tSM:${sampleId}' ${ref_genome_cvmfs_file} ${reads} | samtools view -Sb | samtools sort -o ${sampleId}_sorted.bam
 
@@ -56,21 +56,21 @@ executor {
   --> Try to remove it and compare outputs.
   
   
-  ### SNV calling
+  ## SNV calling
   
-  #### DeepVariant
+  ### DeepVariant
   
   Deepvariant performs better than other tools such as GATK
   
   DeepVariant flags : https://cloud.google.com/life-sciences/docs/tutorials/deepvariant
   
-   #### GLnexus
+   ### GLnexus
   
   GLnexus is advised for joint calling following calling with DeepVariant
   
   GLnexus options : To find
   
-  ### MT variant calling
+  ## MT variant calling
   
   Decided to use GATK and follow the broad guidelines : https://gatk.broadinstitute.org/hc/en-us/articles/4403870837275-Mitochondrial-short-variant-discovery-SNVs-Indels-
   
@@ -80,7 +80,7 @@ executor {
   
   The general idea was kept while some step are slightly different
   
-  ### Annotation of SNV and MT
+  ## Annotation of SNV and MT
   
   VEP options : https://uswest.ensembl.org/info/docs/tools/vep/script/vep_options.html
   
@@ -89,15 +89,15 @@ executor {
   --stats_file [filename] = Summary stats file name. This is an HTML file containing a summary of the VEP run - the file name must end ".htm" or ".html". Default = "variant_effect_output.txt_summary.html"
 
   
-  ### QC
+  ## QC
   
-  #### Fastq QC (pre-alignment)
+  ### Fastq QC (pre-alignment)
   
   **fastqc** https://www.bioinformatics.babraham.ac.uk/projects/fastqc/
   
   Would be great to use a second one?
   
-  #### Bam QC (Post-alignment)
+  ### Bam QC (Post-alignment)
   
 **Picard CollectWgsMetrics** : Collect metrics about coverage and performance of whole genome sequencing (WGS) experiments. This tool collects metrics about the fractions of reads that pass base- and mapping-quality filters as well as coverage (read-depth) levels for WGS analyses. Both minimum base- and mapping-quality values as well as the maximum read depths (coverage cap) are user defined.     
 
@@ -116,7 +116,7 @@ executor {
   
   https://hcc.unl.edu/docs/applications/app_specific/bioinformatics_tools/data_manipulation_tools/bamtools/running_bamtools_commands/
 
-#### Vcf QC (Post-alignment)[SNV, MT, SV]
+### Vcf QC (Post-alignment)[SNV, MT, SV]
 
 **BcfTools stats**   : Parses VCF or BCF and produces text file stats which is suitable for machine processing and can be plotted using plot-vcfstats.
   
@@ -132,7 +132,7 @@ executor {
   
   https://m.ensembl.org/info/docs/tools/vep/vep_formats.html#stats
 
-#### Agregator of QC results
+### Agregator of QC results
   
  **MultiQC** : Aggregate results from bioinformatics analyses across many samples into a single report
   
