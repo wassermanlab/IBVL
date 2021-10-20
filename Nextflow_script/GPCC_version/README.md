@@ -34,44 +34,6 @@ executor {
   
 ## .nf file
 
-### QC
-  
-  #### Fastq QC (pre-alignment)
-  
-  fastqc https://www.bioinformatics.babraham.ac.uk/projects/fastqc/
-  
-  Would be great to use a second one?
-  
-  #### Bam QC (Post-alignment)
-
-Picard CollectWgsMetrics      
-
-PICARD CollectAlignmentSummaryMetrics   
-
-PICARD QualityScoreDistribution   
-
-mosdepth
-
-Bamtools Stats
-
-#### Vcf QC (Post-alignment)[SNV, MT, SV]
-
-BcfTools stats   
-
-VCFTools TsTv-by-count   
-
-Calculates the Transition / Transversion ratio as a function of alternative allele count. Only uses bi-allelic SNPs. The resulting output file has the suffix ".TsTv.count".
-
-VcfTools TsTv-by-qual  
-
-Calculates the Transition / Transversion ratio as a function of SNP quality threshold. Only uses bi-allelic SNPs. The resulting output file has the suffix ".TsTv.qual".
-
-VEP  
-
-Included by default, just redirected the file to the QC folder
-
-#### Agregator of QC results
-  MultiQC
   
   ### Alignment (Fastq --> Bam)
   
@@ -125,3 +87,53 @@ Included by default, just redirected the file to the QC folder
   --everything = Shortcut flag to switch on all of the following: --sift b, --polyphen b, --ccds, --hgvs, --symbol, --numbers, --domains, --regulatory, --canonical, --protein, --biotype, --uniprot, --tsl, --appris, --gene_phenotype --af, --af_1kg, --af_esp, --af_gnomad, --max_af, --pubmed, --var_synonyms, --variant_class, --mane
   
   --stats_file [filename] = Summary stats file name. This is an HTML file containing a summary of the VEP run - the file name must end ".htm" or ".html". Default = "variant_effect_output.txt_summary.html"
+
+  
+  ### QC
+  
+  #### Fastq QC (pre-alignment)
+  
+  fastqc https://www.bioinformatics.babraham.ac.uk/projects/fastqc/
+  
+  Would be great to use a second one?
+  
+  #### Bam QC (Post-alignment)
+
+PICARD full list : https://broadinstitute.github.io/picard/command-line-overview.html
+  
+  Picard CollectWgsMetrics : Collect metrics about coverage and performance of whole genome sequencing (WGS) experiments. This tool collects metrics about the fractions of reads that pass base- and mapping-quality filters as well as coverage (read-depth) levels for WGS analyses. Both minimum base- and mapping-quality values as well as the maximum read depths (coverage cap) are user defined.     
+
+PICARD CollectAlignmentSummaryMetrics   : Produces a summary of alignment metrics from a SAM or BAM file. This tool takes a SAM/BAM file input and produces metrics detailing the quality of the read alignments as well as the proportion of the reads that passed machine signal-to-noise threshold quality filters.
+
+PICARD QualityScoreDistribution : This tool is used for determining the overall 'quality' for a library in a given run. To that effect, it outputs a chart and tables indicating the range of quality scores and the total numbers of bases corresponding to those scores.  
+
+mosdepth : command-line tool for rapidly calculating genome-wide sequencing coverage.
+  
+  Paper : https://pubmed.ncbi.nlm.nih.gov/29096012/
+  GitHub : https://github.com/brentp/mosdepth
+
+Bamtools Stats : The command bamtools stats prints general alignment statistics from the BAM file.
+  
+  https://hcc.unl.edu/docs/applications/app_specific/bioinformatics_tools/data_manipulation_tools/bamtools/running_bamtools_commands/
+
+#### Vcf QC (Post-alignment)[SNV, MT, SV]
+
+BcfTools stats   : Parses VCF or BCF and produces text file stats which is suitable for machine processing and can be plotted using plot-vcfstats.
+  
+  https://samtools.github.io/bcftools/bcftools.html#stats
+
+VCFTools TsTv-by-count   : Calculates the Transition / Transversion ratio as a function of alternative allele count. Only uses bi-allelic SNPs. The resulting output file has the suffix ".TsTv.count".
+
+VcfTools TsTv-by-qual  : Calculates the Transition / Transversion ratio as a function of SNP quality threshold. Only uses bi-allelic SNPs. The resulting output file has the suffix ".TsTv.qual".
+  
+  VcfTools details : https://vcftools.github.io/man_latest.html
+
+VEP  statistics : VEP writes an HTML file containing statistics pertaining to the results of your job - Included by default, just redirected the file to the QC folder 
+  
+  https://m.ensembl.org/info/docs/tools/vep/vep_formats.html#stats
+
+#### Agregator of QC results
+  
+  MultiQC : Aggregate results from bioinformatics analyses across many samples into a single report
+  
+  https://multiqc.info
