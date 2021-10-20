@@ -93,7 +93,7 @@ executor {
   
   #### Fastq QC (pre-alignment)
   
-  fastqc https://www.bioinformatics.babraham.ac.uk/projects/fastqc/
+  **fastqc** https://www.bioinformatics.babraham.ac.uk/projects/fastqc/
   
   Would be great to use a second one?
   
@@ -134,6 +134,6 @@ executor {
 
 #### Agregator of QC results
   
- ** MultiQC** : Aggregate results from bioinformatics analyses across many samples into a single report
+ **MultiQC** : Aggregate results from bioinformatics analyses across many samples into a single report
   
   https://multiqc.info
