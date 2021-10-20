@@ -19,6 +19,10 @@ Full list available here : https://www.nextflow.io/docs/latest/config.html
   
 process.executor = 'slurm'
 process.queue = 'silent_q'
+
+#Process.shell is necessary to avoid an error while unmounting GPCC and mounting CC modules through Nextflow
+process.shell = ['/bin/bash','-e']
+
   
 Add the limit in number of jobs submitted at a given time : 20?
 queueSize : The number of tasks the executor will handle in a parallel manner (default: 100).
