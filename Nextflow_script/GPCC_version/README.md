@@ -1,5 +1,5 @@
 
-## Readme Goal
+# Readme Goal
 
 This readme is for everyone to comment on things to add / modify in the script
 
