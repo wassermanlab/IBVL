@@ -21,6 +21,7 @@ process.executor = 'slurm'
 process.queue = 'silent_q'
 
 #Process.shell is necessary to avoid an error while unmounting GPCC and mounting CC modules through Nextflow
+  
 process.shell = ['/bin/bash','-e']
 
   
