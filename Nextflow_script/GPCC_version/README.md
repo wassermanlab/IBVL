@@ -36,32 +36,39 @@ executor {
 
 ### QC
   
-  #### Fastq QC
+  #### Fastq QC (pre-alignment)
   
   fastqc https://www.bioinformatics.babraham.ac.uk/projects/fastqc/
   
   Would be great to use a second one?
   
-  #### Bam QC
+  #### Bam QC (Post-alignment)
 
 Picard CollectWgsMetrics      
-
-Picard BamIndexStats  
 
 PICARD CollectAlignmentSummaryMetrics   
 
 PICARD QualityScoreDistribution   
 
-mosdepth? 
+mosdepth
 
-#### SNV calls QC
-  VEP ?
+Bamtools Stats
 
-#### MT calls QC
-  VEP?
+#### Vcf QC (Post-alignment)[SNV, MT, SV]
 
-#### SV callsQC
-  ?
+BcfTools stats   
+
+VCFTools TsTv-by-count   
+
+Calculates the Transition / Transversion ratio as a function of alternative allele count. Only uses bi-allelic SNPs. The resulting output file has the suffix ".TsTv.count".
+
+VcfTools TsTv-by-qual  
+
+Calculates the Transition / Transversion ratio as a function of SNP quality threshold. Only uses bi-allelic SNPs. The resulting output file has the suffix ".TsTv.qual".
+
+VEP  
+
+Included by default, just redirected the file to the QC folder
 
 #### Agregator of QC results
   MultiQC
