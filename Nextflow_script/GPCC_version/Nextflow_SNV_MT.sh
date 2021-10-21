@@ -12,4 +12,4 @@
 #SBATCH --error=%x-%j.error
 
 
-nextflow run Nextflow_SNV_MT_211009.nf -resume -with-trace
+nextflow run Nextflow_SNV_MT_211021.nf -resume -with-trace -with-report -with-timeline  -with-dag flowchart.png
