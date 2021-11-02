@@ -112,9 +112,9 @@ singularity exec -B /home -B /project -B /scratch -B /localscratch /home/correar
   
   ## Frequency calculation and annotation of SNV and MT variants
   
-  	###Frequency calculation for the SNV 
+###Frequency calculation for the SNV 
 	
-	Only works for the SNV frequency as other values are necessary for the MT variants
+Only works for the SNV frequency as other values are necessary for the MT variants
 	
 ```
 singularity exec -B /mnt/scratch/SILENT/Act3/ -B /mnt/common/SILENT/Act3/ /mnt/common/SILENT/Act3/singularity/gatk4-4.2.0.sif \
@@ -139,9 +139,9 @@ singularity exec -B /mnt/scratch/SILENT/Act3/ -B /mnt/common/SILENT/Act3/ /mnt/c
         -F Consequence
 ```
 	
-	### Frequency calculation for the MT variants
+### Frequency calculation for the MT variants
 	
-	Only works for the MT frequency as it is necessary to calculate the VAF (Variant allele fraction or heteroplasmy levels)
+Only works for the MT frequency as it is necessary to calculate the VAF (Variant allele fraction or heteroplasmy levels)
 	
 ```
         singularity exec -B /mnt/scratch/SILENT/Act3/ -B /mnt/common/SILENT/Act3/ /mnt/common/SILENT/Act3/singularity/gatk4-4.2.0.sif \
