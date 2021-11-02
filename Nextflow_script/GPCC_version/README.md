@@ -167,7 +167,7 @@ Only works for the MT frequency as it is necessary to calculate the VAF (Variant
         -GF AF
 ```	
 	
-	### Annotation for SNV and MT variants
+### Annotation for SNV and MT variants
 	
 ```
         vep \
