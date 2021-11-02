@@ -86,12 +86,12 @@ singularity exec -B /mnt/scratch/SILENT/Act3/ -B /mnt/common/SILENT/Act3/ -B /mn
   
   GLnexus options : To find
 	
-'''
-	singularity exec -B /mnt/scratch/SILENT/Act3/ -B /mnt/common/SILENT/Act3/ /mnt/common/SILENT/Act3/singularity/glnexus-1.4.1.sif \
+```
+singularity exec -B /mnt/scratch/SILENT/Act3/ -B /mnt/common/SILENT/Act3/ /mnt/common/SILENT/Act3/singularity/glnexus-1.4.1.sif \
 	glnexus_cli \
 	--config DeepVariant \
 	--list ${list_gvcf} > DeepVariant_GLnexus_${version}.bcf
-'''
+```
   
   ## MT variant calling
   
