@@ -97,17 +97,44 @@ samtools index ${sampleId}_sorted.bam
   
   **fastqc** https://www.bioinformatics.babraham.ac.uk/projects/fastqc/
   
-  `fastqc ${fastq_file}`
+```
+  fastqc ${fastq_file}
+  ```
   
   Would be great to use a second one?
   
   ### Bam QC (Post-alignment)
   
-**Picard CollectWgsMetrics** : Collect metrics about coverage and performance of whole genome sequencing (WGS) experiments. This tool collects metrics about the fractions of reads that pass base- and mapping-quality filters as well as coverage (read-depth) levels for WGS analyses. Both minimum base- and mapping-quality values as well as the maximum read depths (coverage cap) are user defined.     
+**Picard CollectWgsMetrics** : Collect metrics about coverage and performance of whole genome sequencing (WGS) experiments. This tool collects metrics about the fractions of reads that pass base- and mapping-quality filters as well as coverage (read-depth) levels for WGS analyses. Both minimum base- and mapping-quality values as well as the maximum read depths (coverage cap) are user defined.
+  
+  ```
+          singularity exec -B /mnt/common/DATABASES/REFERENCES/ -B /mnt/scratch/SILENT/Act3/ -B /mnt/common/SILENT/Act3/ /mnt/common/SILENT/Act3/singularity/gatk4-4.2.0.sif \
+        gatk	CollectWgsMetrics \
+	-I ${bam} \
+	-O ${bam.simpleName}_collect_wgs_metrics.txt \
+	-R ${ref_genome_cvmfs_file}
+  ```
 
 **PICARD CollectAlignmentSummaryMetrics**   : Produces a summary of alignment metrics from a SAM or BAM file. This tool takes a SAM/BAM file input and produces metrics detailing the quality of the read alignments as well as the proportion of the reads that passed machine signal-to-noise threshold quality filters.
+  
+  ```
+singularity exec -B /mnt/scratch/SILENT/Act3/ -B /mnt/common/SILENT/Act3/ /mnt/common/SILENT/Act3/singularity/gatk4-4.2.0.sif \
+gatk CollectAlignmentSummaryMetrics \
+	-I ${bam} \
+	-O ${bam.simpleName}_Picard_Alignment
+  ```
 
-**PICARD QualityScoreDistribution** : This tool is used for determining the overall 'quality' for a library in a given run. To that effect, it outputs a chart and tables indicating the range of quality scores and the total numbers of bases corresponding to those scores.  
+**PICARD QualityScoreDistribution** : This tool is used for determining the overall 'quality' for a library in a given run. To that effect, it outputs a chart and tables indicating the range of quality scores and the total numbers of bases corresponding to those scores. 
+  
+  This one require R (Hence done while loading compute canada)
+  
+  ```
+  	java -jar \$EBROOTPICARD/picard.jar \
+	QualityScoreDistribution \
+	I=${bam} \
+	O=${bam.simpleName}_qual_score_dist.txt \
+	CHART= ${bam.simpleName}_qual_score_dist.pdf
+  ```
 
   PICARD full list : https://broadinstitute.github.io/picard/command-line-overview.html
   
@@ -115,6 +142,11 @@ samtools index ${sampleId}_sorted.bam
   
   Paper : https://pubmed.ncbi.nlm.nih.gov/29096012/
   GitHub : https://github.com/brentp/mosdepth
+  
+  ```
+  singularity exec -B /mnt/scratch/SILENT/Act3/ -B /mnt/common/SILENT/Act3/ /mnt/common/SILENT/Act3/singularity/mosdepth-0.3.2.sif \
+	mosdepth ${bam.simpleName} ${bam}
+  ```
 
 **Bamtools Stats** : The command bamtools stats prints general alignment statistics from the BAM file.
   
@@ -139,5 +171,10 @@ samtools index ${sampleId}_sorted.bam
 ### Agregator of QC results
   
  **MultiQC** : Aggregate results from bioinformatics analyses across many samples into a single report
+  
+  ```
+  	singularity exec -B /mnt/scratch/SILENT/Act3/ -B /mnt/common/SILENT/Act3/ /mnt/common/SILENT/Act3/singularity/multiqc-1.9.sif \
+	multiqc ${params.outdir_ind}/${version}/QC/
+  ```
   
   https://multiqc.info
