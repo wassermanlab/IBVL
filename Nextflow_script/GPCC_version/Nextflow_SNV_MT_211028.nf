@@ -1011,9 +1011,9 @@ process Bcftools_stats {
 	"""
 }
 
-//VcfTools TsTv
+//VcfTools TsTv_by_count
 
-process Vcftools_TsTv {
+process Vcftools_TsTv_by_count {
 	memory '4G'
 
 	input :
@@ -1023,7 +1023,7 @@ process Vcftools_TsTv {
 	path outdir_pop from params.outdir_pop
 
 	output :
-	file '*' into Vcftools_TsTv
+	file '*' into Vcftools_TsTv_by_count
 
 	publishDir "$params.outdir_pop/${version}/QC/Vcftools_TsTv/", mode: 'copy'
 
@@ -1039,8 +1039,40 @@ process Vcftools_TsTv {
 	module load vcftools
 
 	echo ${vcf_file.simpleName}
-	vcftools --vcf ${vcf_file} --TsTv-by-count --TsTv-by-qual --out ${vcf_file}_Bcftools_stats
+	vcftools --gzvcf ${vcf_file} --TsTv-by-count --out ${vcf_file.simpleName}_Vcftools_TsTv_count
 	"""
+}
+
+//VcfTools TsTv_by_qual
+
+process Vcftools_TsTv_by_qual {
+        memory '4G'
+
+        input :
+        file(vcf_file) from MT_merge_samples
+        file(vcf_file) from bcf_to_vcf
+        val version from params.version
+        path outdir_pop from params.outdir_pop
+
+        output :
+        file '*' into Vcftools_TsTv_by_qual
+
+        publishDir "$params.outdir_pop/${version}/QC/Vcftools_TsTv/", mode: 'copy'
+
+        script :
+        """
+        # Unload bcchr, and load cvmfs
+        # unload_bcchr
+        source /cm/shared/BCCHR-apps/env_vars/unset_BCM.sh
+        # load cvmfs
+        source /cvmfs/soft.computecanada.ca/config/profile/bash.sh
+
+        module load StdEnv/2020
+        module load vcftools
+
+        echo ${vcf_file.simpleName}
+        vcftools --gzvcf ${vcf_file} --TsTv-by-qual --out ${vcf_file.simpleName}_Vcftools_TsTv_qual
+        """
 }
 
 
@@ -1196,7 +1228,8 @@ process multiqc_pop {
 
         input :
         file '*' from vep_stat.collect()
-        file '*' from Vcftools_TsTv.collect()
+        file '*' from Vcftools_TsTv_by_count.collect()
+        file '*' from Vcftools_TsTv_by_qual.collect()
         file '*' from Bcftools_stats.collect()
         val version from params.version
         path outdir_pop from params.outdir_pop
