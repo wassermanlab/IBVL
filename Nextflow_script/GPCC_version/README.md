@@ -65,12 +65,30 @@ samtools index ${sampleId}_sorted.bam
   Deepvariant performs better than other tools such as GATK
   
   DeepVariant flags : https://cloud.google.com/life-sciences/docs/tutorials/deepvariant
+	
+```
+	singularity exec -B /mnt/scratch/SILENT/Act3/ -B /mnt/common/SILENT/Act3/ -B /mnt/common/DATABASES/REFERENCES/GRCh38/GENOME/1000G/ /mnt/common/SILENT/Act3/singularity/deepvariant-1.2.0.sif \
+	/opt/deepvariant/bin/run_deepvariant \
+	--model_type=WGS \
+	--ref=${ref_genome_file} \
+	--reads=${bam.simpleName}.bam \
+	--regions chr20 \
+	--output_gvcf=${bam.simpleName}.g.vcf.gz \
+	--output_vcf=${bam.simpleName}.vcf.gz
+	```
   
    ### GLnexus
   
   GLnexus is advised for joint calling following calling with DeepVariant
   
   GLnexus options : To find
+	
+'''
+	singularity exec -B /mnt/scratch/SILENT/Act3/ -B /mnt/common/SILENT/Act3/ /mnt/common/SILENT/Act3/singularity/glnexus-1.4.1.sif \
+	glnexus_cli \
+	--config DeepVariant \
+	--list ${list_gvcf} > DeepVariant_GLnexus_${version}.bcf
+'''
   
   ## MT variant calling
   
@@ -108,7 +126,7 @@ samtools index ${sampleId}_sorted.bam
 **Picard CollectWgsMetrics** : Collect metrics about coverage and performance of whole genome sequencing (WGS) experiments. This tool collects metrics about the fractions of reads that pass base- and mapping-quality filters as well as coverage (read-depth) levels for WGS analyses. Both minimum base- and mapping-quality values as well as the maximum read depths (coverage cap) are user defined.
   
   ```
-          singularity exec -B /mnt/common/DATABASES/REFERENCES/ -B /mnt/scratch/SILENT/Act3/ -B /mnt/common/SILENT/Act3/ /mnt/common/SILENT/Act3/singularity/gatk4-4.2.0.sif \
+singularity exec -B /mnt/common/DATABASES/REFERENCES/ -B /mnt/scratch/SILENT/Act3/ -B /mnt/common/SILENT/Act3/ /mnt/common/SILENT/Act3/singularity/gatk4-4.2.0.sif \
         gatk	CollectWgsMetrics \
 	-I ${bam} \
 	-O ${bam.simpleName}_collect_wgs_metrics.txt \
@@ -129,7 +147,7 @@ gatk CollectAlignmentSummaryMetrics \
   This one require R (Hence done while loading compute canada)
   
   ```
-  	java -jar \$EBROOTPICARD/picard.jar \
+java -jar \$EBROOTPICARD/picard.jar \
 	QualityScoreDistribution \
 	I=${bam} \
 	O=${bam.simpleName}_qual_score_dist.txt \
@@ -144,8 +162,8 @@ gatk CollectAlignmentSummaryMetrics \
   GitHub : https://github.com/brentp/mosdepth
   
   ```
-  singularity exec -B /mnt/scratch/SILENT/Act3/ -B /mnt/common/SILENT/Act3/ /mnt/common/SILENT/Act3/singularity/mosdepth-0.3.2.sif \
-	mosdepth ${bam.simpleName} ${bam}
+singularity exec -B /mnt/scratch/SILENT/Act3/ -B /mnt/common/SILENT/Act3/ /mnt/common/SILENT/Act3/singularity/mosdepth-0.3.2.sif \
+mosdepth ${bam.simpleName} ${bam}
   ```
 
 **Bamtools Stats** : The command bamtools stats prints general alignment statistics from the BAM file.
@@ -173,8 +191,8 @@ gatk CollectAlignmentSummaryMetrics \
  **MultiQC** : Aggregate results from bioinformatics analyses across many samples into a single report
   
   ```
-  	singularity exec -B /mnt/scratch/SILENT/Act3/ -B /mnt/common/SILENT/Act3/ /mnt/common/SILENT/Act3/singularity/multiqc-1.9.sif \
-	multiqc ${params.outdir_ind}/${version}/QC/
+singularity exec -B /mnt/scratch/SILENT/Act3/ -B /mnt/common/SILENT/Act3/ /mnt/common/SILENT/Act3/singularity/multiqc-1.9.sif \
+multiqc ${params.outdir_ind}/${version}/QC/
   ```
   
   https://multiqc.info
