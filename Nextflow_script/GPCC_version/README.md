@@ -70,7 +70,7 @@ samtools index ${sampleId}_sorted.bam
   DeepVariant flags : https://cloud.google.com/life-sciences/docs/tutorials/deepvariant
 	
 ```
-	singularity exec -B /mnt/scratch/SILENT/Act3/ -B /mnt/common/SILENT/Act3/ -B /mnt/common/DATABASES/REFERENCES/GRCh38/GENOME/1000G/ /mnt/common/SILENT/Act3/singularity/deepvariant-1.2.0.sif \
+singularity exec -B /mnt/scratch/SILENT/Act3/ -B /mnt/common/SILENT/Act3/ -B /mnt/common/DATABASES/REFERENCES/GRCh38/GENOME/1000G/ /mnt/common/SILENT/Act3/singularity/deepvariant-1.2.0.sif \
 	/opt/deepvariant/bin/run_deepvariant \
 	--model_type=WGS \
 	--ref=${ref_genome_file} \
@@ -78,7 +78,7 @@ samtools index ${sampleId}_sorted.bam
 	--regions chr20 \
 	--output_gvcf=${bam.simpleName}.g.vcf.gz \
 	--output_vcf=${bam.simpleName}.vcf.gz
-	```
+```
   
    ### GLnexus
   
