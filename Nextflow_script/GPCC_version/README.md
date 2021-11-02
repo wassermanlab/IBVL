@@ -1,7 +1,15 @@
 
-# Readme Goal
+# Readme file
 
 This readme is for everyone to comment on things to add / modify in the script
+
+This readme file concern the part that are common for all the pipelines (alignemnt, pre and post alignement QC) and the SNV calling.
+
+For the other parts of the pipeline, refer to :
+
+The [Readme_MT](https://github.com/scorreard/IBVL/blob/main/Nextflow_script/GPCC_version/Readme_MT.md) file for the parts specific to MT variant calling 
+
+The Readme_SV file for the parts specific to SV calling
 
 
 # .sh file
@@ -100,19 +108,8 @@ singularity exec -B /home -B /project -B /scratch -B /localscratch /home/correar
         -I ${bcf_file.simpleName}.vcf.gz
 ```
   
-  ## MT variant calling
   
-  Decided to use GATK and follow the broad guidelines : https://gatk.broadinstitute.org/hc/en-us/articles/4403870837275-Mitochondrial-short-variant-discovery-SNVs-Indels-
-  
-  It requires many step as reads mapping to the MT genome are extracted, and then re-aligned to a MT genome and a shifted MT genome to adress the circularity of the genome (And the reads mapping on the artificial breakpoint in the linear reference genome).
-  
-  The steps are described here : https://gatk.broadinstitute.org/hc/en-us/articles/4403870837275-Mitochondrial-short-variant-discovery-SNVs-Indels-
-  
-  The general idea was kept while some step are slightly different
-  
-  ## Frequency calculation and annotation of SNV and MT variants
-  
-### Frequency calculation for the SNV 
+  ## Frequency calculation for the SNV 
 	
 Only works for the SNV frequency as other values are necessary for the MT variants
 	
@@ -139,35 +136,11 @@ singularity exec -B /mnt/scratch/SILENT/Act3/ -B /mnt/common/SILENT/Act3/ /mnt/c
         -F Consequence
 ```
 	
-### Frequency calculation for the MT variants
+
 	
-Only works for the MT frequency as it is necessary to calculate the VAF (Variant allele fraction or heteroplasmy levels)
-	
-```
-        singularity exec -B /mnt/scratch/SILENT/Act3/ -B /mnt/common/SILENT/Act3/ /mnt/common/SILENT/Act3/singularity/gatk4-4.2.0.sif \
-        gatk --java-options "-Xmx4G" \
-       VariantsToTable \
-        -V ${MT_vcf} \
-        -O ${MT_vcf.simpleName}_frequency_table \
-        -F CHROM \
-        -F POS \
-        -F TYPE\
-        -F ID \
-        -F REF \
-        -F ALT \
-        -F QUAL \
-        -F FILTER \
-        -F AF \
-        -F HET \
-        -F HOM-REF \
-        -F HOM-VAR \
-        -F NO-CALL \
-        -F MULTI-ALLELIC \
-        -F Consequence \
-        -GF AF
-```	
-	
-### Annotation for SNV and MT variants
+## Annotation for SNV and MT variants
+
+Common for SNV and MT variants
 	
 ```
         vep \
