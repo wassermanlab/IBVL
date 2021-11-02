@@ -91,6 +91,13 @@ singularity exec -B /mnt/scratch/SILENT/Act3/ -B /mnt/common/SILENT/Act3/ /mnt/c
 	glnexus_cli \
 	--config DeepVariant \
 	--list ${list_gvcf} > DeepVariant_GLnexus_${version}.bcf
+	
+bcftools view ${bcf_file} | bgzip -c > ${bcf_file.simpleName}.vcf.gz
+
+singularity exec -B /home -B /project -B /scratch -B /localscratch /home/correard/scratch/SnakeMake_VariantCalling/MT/Mutect2/gatk.sif \
+        gatk --java-options "-Xmx4G" \
+       IndexFeatureFile \
+        -I ${bcf_file.simpleName}.vcf.gz
 ```
   
   ## MT variant calling
@@ -178,10 +185,19 @@ mosdepth ${bam.simpleName} ${bam}
 **BcfTools stats**   : Parses VCF or BCF and produces text file stats which is suitable for machine processing and can be plotted using plot-vcfstats.
   
   https://samtools.github.io/bcftools/bcftools.html#stats
+  
+  ```
+  bcftools stats  ${vcf_file}
+  ```
 
 **VCFTools TsTv-by-count**   : Calculates the Transition / Transversion ratio as a function of alternative allele count. Only uses bi-allelic SNPs. The resulting output file has the suffix ".TsTv.count".
 
+
 **VcfTools TsTv-by-qual**  : Calculates the Transition / Transversion ratio as a function of SNP quality threshold. Only uses bi-allelic SNPs. The resulting output file has the suffix ".TsTv.qual".
+
+```
+vcftools --vcf ${vcf_file} --TsTv-by-count --TsTv-by-qual --out ${vcf_file}_Bcftools_stats
+```
   
   VcfTools details : https://vcftools.github.io/man_latest.html
 
