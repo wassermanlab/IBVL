@@ -112,7 +112,7 @@ singularity exec -B /home -B /project -B /scratch -B /localscratch /home/correar
   
   ## Frequency calculation and annotation of SNV and MT variants
   
-###Frequency calculation for the SNV 
+### Frequency calculation for the SNV 
 	
 Only works for the SNV frequency as other values are necessary for the MT variants
 	
