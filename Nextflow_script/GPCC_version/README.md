@@ -7,9 +7,9 @@ This readme file concern the part that are common for all the pipelines (alignem
 
 For the other parts of the pipeline, refer to :
 
-The [Readme_MT](https://github.com/scorreard/IBVL/blob/main/Nextflow_script/GPCC_version/Readme_MT.md) file for the parts specific to MT variant calling 
+	- The [Readme_MT](https://github.com/scorreard/IBVL/blob/main/Nextflow_script/GPCC_version/Readme_MT.md) file for the parts specific to MT variant calling 
 
-The Readme_SV file for the parts specific to SV calling
+	- The Readme_SV file for the parts specific to SV calling
 
 
 # .sh file
