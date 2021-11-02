@@ -260,11 +260,14 @@ mosdepth ${bam.simpleName} ${bam}
 
 **VCFTools TsTv-by-count**   : Calculates the Transition / Transversion ratio as a function of alternative allele count. Only uses bi-allelic SNPs. The resulting output file has the suffix ".TsTv.count".
 
+```
+vcftools --gzvcf ${vcf_file} --TsTv-by-count --out ${vcf_file.simpleName}_Vcftools_TsTv_count
+```
 
 **VcfTools TsTv-by-qual**  : Calculates the Transition / Transversion ratio as a function of SNP quality threshold. Only uses bi-allelic SNPs. The resulting output file has the suffix ".TsTv.qual".
 
 ```
-vcftools --vcf ${vcf_file} --TsTv-by-count --TsTv-by-qual --out ${vcf_file}_Bcftools_stats
+vcftools --gzvcf ${vcf_file} --TsTv-by-qual --out ${vcf_file.simpleName}_Vcftools_TsTv_qual
 ```
   
   VcfTools details : https://vcftools.github.io/man_latest.html
@@ -287,10 +290,19 @@ vep \
 ### Agregator of QC results
   
  **MultiQC** : Aggregate results from bioinformatics analyses across many samples into a single report
-  
+ 
+ Require to do one for the individual results (pre and post alignement) and another one for the population data
+
+  https://multiqc.info
+
   ```
 singularity exec -B /mnt/scratch/SILENT/Act3/ -B /mnt/common/SILENT/Act3/ /mnt/common/SILENT/Act3/singularity/multiqc-1.9.sif \
 multiqc ${params.outdir_ind}/${version}/QC/
   ```
   
-  https://multiqc.info
+  ```
+singularity exec -B /mnt/scratch/SILENT/Act3/ -B /mnt/common/SILENT/Act3/ /mnt/common/SILENT/Act3/singularity/multiqc-1.9.sif \
+multiqc $params.outdir_pop/${version}/QC/
+```
+  
+
