@@ -110,7 +110,75 @@ singularity exec -B /home -B /project -B /scratch -B /localscratch /home/correar
   
   The general idea was kept while some step are slightly different
   
-  ## Annotation of SNV and MT
+  ## Frequency calculation and annotation of SNV and MT variants
+  
+  	###Frequency calculation for the SNV 
+	
+	Only works for the SNV frequency as other values are necessary for the MT variants
+	
+```
+singularity exec -B /mnt/scratch/SILENT/Act3/ -B /mnt/common/SILENT/Act3/ /mnt/common/SILENT/Act3/singularity/gatk4-4.2.0.sif \
+        gatk --java-options "-Xmx4G" \
+       VariantsToTable \
+        -V ${SNV_vcf} \
+        -O ${SNV_vcf.simpleName}_frequency_table \
+        -F CHROM \
+        -F POS \
+        -F TYPE\
+        -F ID \
+        -F REF \
+        -F ALT \
+        -F QUAL \
+        -F FILTER \
+        -F AF \
+        -F HET \
+        -F HOM-REF \
+        -F HOM-VAR \
+        -F NO-CALL \
+        -F MULTI-ALLELIC \
+        -F Consequence
+```
+	
+	### Frequency calculation for the MT variants
+	
+	Only works for the MT frequency as it is necessary to calculate the VAF (Variant allele fraction or heteroplasmy levels)
+	
+```
+        singularity exec -B /mnt/scratch/SILENT/Act3/ -B /mnt/common/SILENT/Act3/ /mnt/common/SILENT/Act3/singularity/gatk4-4.2.0.sif \
+        gatk --java-options "-Xmx4G" \
+       VariantsToTable \
+        -V ${MT_vcf} \
+        -O ${MT_vcf.simpleName}_frequency_table \
+        -F CHROM \
+        -F POS \
+        -F TYPE\
+        -F ID \
+        -F REF \
+        -F ALT \
+        -F QUAL \
+        -F FILTER \
+        -F AF \
+        -F HET \
+        -F HOM-REF \
+        -F HOM-VAR \
+        -F NO-CALL \
+        -F MULTI-ALLELIC \
+        -F Consequence \
+        -GF AF
+```	
+	
+	### Annotation for SNV and MT variants
+	
+```
+        vep \
+        -i ${vcf_file} \
+        -o ${vcf_file.simpleName}_${version}_annotation_tab.tsv \
+        --cache \
+        --dir_cache /mnt/common/DATABASES/REFERENCES/GRCh38/VEP/ \
+        --everything \
+        --tab \
+        --stats_file ${vcf_file.simpleName}_VEP_stats
+```
   
   VEP options : https://uswest.ensembl.org/info/docs/tools/vep/script/vep_options.html
   
@@ -204,6 +272,17 @@ vcftools --vcf ${vcf_file} --TsTv-by-count --TsTv-by-qual --out ${vcf_file}_Bcft
 **VEP  statistics** : VEP writes an HTML file containing statistics pertaining to the results of your job - Included by default, just redirected the file to the QC folder 
   
   https://m.ensembl.org/info/docs/tools/vep/vep_formats.html#stats
+  
+```
+vep \
+        -i ${vcf_file} \
+        -o ${vcf_file.simpleName}_${version}_annotation_tab.tsv \
+        --cache \
+        --dir_cache /mnt/common/DATABASES/REFERENCES/GRCh38/VEP/ \
+        --everything \
+        --tab \
+        --stats_file ${vcf_file.simpleName}_VEP_stats
+```
 
 ### Agregator of QC results
   
