@@ -35,7 +35,7 @@ executor {
   
   ## Alignment (Fastq --> Bam)
   
-  	`bwa mem -t 8 -R '@RG\\tID:${sampleId}\\tSM:${sampleId}' ${ref_genome_cvmfs_file} ${reads} | samtools view -Sb | samtools sort -o ${sampleId}_sorted.bam`
+`bwa mem -t 8 -R '@RG\\tID:${sampleId}\\tSM:${sampleId}' ${ref_genome_cvmfs_file} ${reads} | samtools view -Sb | samtools sort -o ${sampleId}_sorted.bam`
   `samtools index ${sampleId}_sorted.bam`
 
   Piping the sam into bam and sorting allows to not save the sam file
