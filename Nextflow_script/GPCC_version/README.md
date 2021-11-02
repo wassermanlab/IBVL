@@ -93,6 +93,8 @@ executor {
   
   **fastqc** https://www.bioinformatics.babraham.ac.uk/projects/fastqc/
   
+  fastqc ${fastq_file}
+  
   Would be great to use a second one?
   
   ### Bam QC (Post-alignment)
