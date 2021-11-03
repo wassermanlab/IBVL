@@ -3,7 +3,7 @@
 
 This readme is for everyone to comment on things to add / modify in the script
 
-This Readme will only concern the Mitochondrial part of the pipeline. Some parts are common with the SNV pipeline and therefore are described in the main Readme file.
+This Readme only concerns the Mitochondrial part of the pipeline. Some parts are common with the SNV pipeline and therefore are described in the [alignment_SNV_pipeline](https://github.com/scorreard/IBVL/blob/main/Nextflow_script/GPCC_version/Alignment_SNV_pipeline.md) document.
 
 ## References downloading and indexing
 
