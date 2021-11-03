@@ -12,18 +12,16 @@ bwa mem -t 8 -R '@RG\\tID:${sampleId}\\tSM:${sampleId}' ${ref_genome_cvmfs_file}
 samtools index ${sampleId}_sorted.bam
 ```
   
-  
   Piping the sam into bam and sorting allows to not save the sam file
-  
-  
-  Bwa additional options : http://bio-bwa.sourceforge.net/bwa.shtml
+    
+  **[Bwa options](http://bio-bwa.sourceforge.net/bwa.shtml)**
   
   -t INT	Number of threads : Should be changed for GPCC?
   
   -R STR	Complete read group header line. ’\t’ can be used in STR and will be converted to a TAB in the output SAM. The read group ID will be attached to every read in the output. An example is ’@RG\tID:foo\tSM:bar’. 
   
   
-  Samtools options : http://www.htslib.org/doc/samtools-view.html
+  **[Samtools options](http://www.htslib.org/doc/samtools-view.html)**
   
   -S The -S indicates the input is in SAM format and the "b" indicates that you'd like BAM output.
   Ignored for compatibility with previous samtools versions. Previously this option was required if input was in SAM format, but now the correct format is automatically detected by examining the first few characters of input.
@@ -32,11 +30,11 @@ samtools index ${sampleId}_sorted.bam
   
   ## SNV calling
   
-  ### DeepVariant
+  ### [DeepVariant](https://github.com/google/deepvariant)
   
   Deepvariant performs better than other tools such as GATK
   
-  DeepVariant flags : https://cloud.google.com/life-sciences/docs/tutorials/deepvariant
+  [DeepVariant flags](https://cloud.google.com/life-sciences/docs/tutorials/deepvariant)
 	
 ```
 singularity exec -B /mnt/scratch/SILENT/Act3/ -B /mnt/common/SILENT/Act3/ -B /mnt/common/DATABASES/REFERENCES/GRCh38/GENOME/1000G/ /mnt/common/SILENT/Act3/singularity/deepvariant-1.2.0.sif \
@@ -49,11 +47,9 @@ singularity exec -B /mnt/scratch/SILENT/Act3/ -B /mnt/common/SILENT/Act3/ -B /mn
 	--output_vcf=${bam.simpleName}.vcf.gz
 ```
   
-   ### GLnexus
+   ### [GLnexus](https://github.com/dnanexus-rnd/GLnexus)
   
   GLnexus is advised for joint calling following calling with DeepVariant
-  
-  GLnexus options : To find
 	
 ```
 singularity exec -B /mnt/scratch/SILENT/Act3/ -B /mnt/common/SILENT/Act3/ /mnt/common/SILENT/Act3/singularity/glnexus-1.4.1.sif \
@@ -70,7 +66,7 @@ singularity exec -B /home -B /project -B /scratch -B /localscratch /home/correar
 ```
   
   
-  ## Frequency calculation for the SNV 
+  ## Frequency calculation for the SNV using [VariantsToTable](https://gatk.broadinstitute.org/hc/en-us/articles/360036896892-VariantsToTable)
 	
 Only works for the SNV frequency as other values are necessary for the MT variants
 	
@@ -99,22 +95,21 @@ singularity exec -B /mnt/scratch/SILENT/Act3/ -B /mnt/common/SILENT/Act3/ /mnt/c
 	
 
 	
-## Annotation for SNV and MT variants
+## Annotation for SNV and MT variants using [VEP](https://uswest.ensembl.org/info/docs/tools/vep/script/vep_options.html#basic)
 
 Common for SNV and MT variants
 	
 ```
-        vep \
-        -i ${vcf_file} \
-        -o ${vcf_file.simpleName}_${version}_annotation_tab.tsv \
+	vep \
+        -i ${vcf_file_MT/SNV} \
+        -o ${vcf_file_MT/SNV.simpleName}_${version}_annotation_tab.tsv \
+	--offline \
         --cache \
         --dir_cache /mnt/common/DATABASES/REFERENCES/GRCh38/VEP/ \
         --everything \
         --tab \
-        --stats_file ${vcf_file.simpleName}_VEP_stats
+        --stats_file ${vcf_file_MT/SNV.simpleName}_VEP_stats
 ```
-  
-  VEP options : https://uswest.ensembl.org/info/docs/tools/vep/script/vep_options.html
   
   --everything = Shortcut flag to switch on all of the following: --sift b, --polyphen b, --ccds, --hgvs, --symbol, --numbers, --domains, --regulatory, --canonical, --protein, --biotype, --uniprot, --tsl, --appris, --gene_phenotype --af, --af_1kg, --af_esp, --af_gnomad, --max_af, --pubmed, --var_synonyms, --variant_class, --mane
   
