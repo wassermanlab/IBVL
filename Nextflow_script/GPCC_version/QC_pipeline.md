@@ -33,7 +33,7 @@ mosdepth ${bam.simpleName} ${bam}
 
 Picard offers several independant QC tools, the ones included in the pipeline are described below.
 
-[Picard CollectWgsMetrics] (https://gatk.broadinstitute.org/hc/en-us/articles/360037269351-CollectWgsMetrics-Picard-)
+[Picard CollectWgsMetrics](https://gatk.broadinstitute.org/hc/en-us/articles/360037269351-CollectWgsMetrics-Picard-)
 
 Collect metrics about coverage and performance of whole genome sequencing (WGS) experiments. This tool collects metrics about the fractions of reads that pass base- and mapping-quality filters as well as coverage (read-depth) levels for WGS analyses. Both minimum base- and mapping-quality values as well as the maximum read depths (coverage cap) are user defined.
   
@@ -45,7 +45,7 @@ singularity exec -B /mnt/common/DATABASES/REFERENCES/ -B /mnt/scratch/SILENT/Act
 	-R ${ref_genome_cvmfs_file}
   ```
 
-[PICARD CollectAlignmentSummaryMetrics] (https://gatk.broadinstitute.org/hc/en-us/articles/360036883111-CollectAlignmentSummaryMetrics-Picard-)
+**[PICARD CollectAlignmentSummaryMetrics]**(https://gatk.broadinstitute.org/hc/en-us/articles/360036883111-CollectAlignmentSummaryMetrics-Picard-)
 
 Produces a summary of alignment metrics from a SAM or BAM file. This tool takes a SAM/BAM file input and produces metrics detailing the quality of the read alignments as well as the proportion of the reads that passed machine signal-to-noise threshold quality filters.
   
@@ -56,7 +56,7 @@ gatk CollectAlignmentSummaryMetrics \
 	-O ${bam.simpleName}_Picard_Alignment
   ```
 
-[PICARD QualityScoreDistribution] (https://gatk.broadinstitute.org/hc/en-us/articles/360037057312-QualityScoreDistribution-Picard-)
+**[PICARD QualityScoreDistribution](https://gatk.broadinstitute.org/hc/en-us/articles/360037057312-QualityScoreDistribution-Picard-)**
 
 This tool is used for determining the overall 'quality' for a library in a given run. To that effect, it outputs a chart and tables indicating the range of quality scores and the total numbers of bases corresponding to those scores. 
   
