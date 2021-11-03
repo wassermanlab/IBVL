@@ -3,11 +3,8 @@
 This readme is for everyone to comment on things to add / modify in the script
 
 This Readme only concerns the Quality control parts of the pipeline, including both pre and post alignement and post-calling QC.
-
   
-  ## QC
-  
-  ### Fastq QC (pre-alignment)
+  ## Fastq QC (pre-alignment)
   
   **fastqc** https://www.bioinformatics.babraham.ac.uk/projects/fastqc/
   
@@ -17,9 +14,11 @@ This Readme only concerns the Quality control parts of the pipeline, including b
   
   Would be great to use a second one?
   
-  ### Bam QC (Post-alignment)
+  ## Bam QC (Post-alignment)
   
-  **mosdepth** : command-line tool for rapidly calculating genome-wide sequencing coverage.
+### mosdept
+
+Command-line tool for rapidly calculating genome-wide sequencing coverage.
   
   Paper : https://pubmed.ncbi.nlm.nih.gov/29096012/
   GitHub : https://github.com/brentp/mosdepth
@@ -29,7 +28,9 @@ singularity exec -B /mnt/scratch/SILENT/Act3/ -B /mnt/common/SILENT/Act3/ /mnt/c
 mosdepth ${bam.simpleName} ${bam}
   ```
   
-**Picard CollectWgsMetrics** : Collect metrics about coverage and performance of whole genome sequencing (WGS) experiments. This tool collects metrics about the fractions of reads that pass base- and mapping-quality filters as well as coverage (read-depth) levels for WGS analyses. Both minimum base- and mapping-quality values as well as the maximum read depths (coverage cap) are user defined.
+### Picard CollectWgsMetrics
+
+Collect metrics about coverage and performance of whole genome sequencing (WGS) experiments. This tool collects metrics about the fractions of reads that pass base- and mapping-quality filters as well as coverage (read-depth) levels for WGS analyses. Both minimum base- and mapping-quality values as well as the maximum read depths (coverage cap) are user defined.
   
   ```
 singularity exec -B /mnt/common/DATABASES/REFERENCES/ -B /mnt/scratch/SILENT/Act3/ -B /mnt/common/SILENT/Act3/ /mnt/common/SILENT/Act3/singularity/gatk4-4.2.0.sif \
@@ -39,7 +40,9 @@ singularity exec -B /mnt/common/DATABASES/REFERENCES/ -B /mnt/scratch/SILENT/Act
 	-R ${ref_genome_cvmfs_file}
   ```
 
-**PICARD CollectAlignmentSummaryMetrics**   : Produces a summary of alignment metrics from a SAM or BAM file. This tool takes a SAM/BAM file input and produces metrics detailing the quality of the read alignments as well as the proportion of the reads that passed machine signal-to-noise threshold quality filters.
+### PICARD CollectAlignmentSummaryMetrics
+
+Produces a summary of alignment metrics from a SAM or BAM file. This tool takes a SAM/BAM file input and produces metrics detailing the quality of the read alignments as well as the proportion of the reads that passed machine signal-to-noise threshold quality filters.
   
   ```
 singularity exec -B /mnt/scratch/SILENT/Act3/ -B /mnt/common/SILENT/Act3/ /mnt/common/SILENT/Act3/singularity/gatk4-4.2.0.sif \
@@ -48,7 +51,9 @@ gatk CollectAlignmentSummaryMetrics \
 	-O ${bam.simpleName}_Picard_Alignment
   ```
 
-**PICARD QualityScoreDistribution** : This tool is used for determining the overall 'quality' for a library in a given run. To that effect, it outputs a chart and tables indicating the range of quality scores and the total numbers of bases corresponding to those scores. 
+### PICARD QualityScoreDistribution
+
+This tool is used for determining the overall 'quality' for a library in a given run. To that effect, it outputs a chart and tables indicating the range of quality scores and the total numbers of bases corresponding to those scores. 
   
   This one require R (Hence done while loading compute canada)
   
@@ -63,18 +68,31 @@ java -jar \$EBROOTPICARD/picard.jar \
   PICARD full list : https://broadinstitute.github.io/picard/command-line-overview.html
   
 
+### Bamtools Stats
+
 **----- Bamtools Stats is not in the pipeline -----**
 
-**Bamtools Stats** : The command bamtools stats prints general alignment statistics from the BAM file.
+The command bamtools stats prints general alignment statistics from the BAM file.
   
   https://hcc.unl.edu/docs/applications/app_specific/bioinformatics_tools/data_manipulation_tools/bamtools/running_bamtools_commands/
 
-**----- Bamtools Stats is not in the pipeline -----**
 
+## Agregation of Individual QC results using MultiQC
 
-### Vcf QC (Post-alignment)[SNV, MT, SV]
+[MultiQC](https://multiqc.info) : Aggregate results from bioinformatics analyses across many samples into a single report
+ 
+ Require to do one for the individual results (pre and post alignement) and another one for the population data
 
-**BcfTools stats**   : Parses VCF or BCF and produces text file stats which is suitable for machine processing and can be plotted using plot-vcfstats.
+  ```
+singularity exec -B /mnt/scratch/SILENT/Act3/ -B /mnt/common/SILENT/Act3/ /mnt/common/SILENT/Act3/singularity/multiqc-1.9.sif \
+multiqc ${params.outdir_ind}/${version}/QC/
+  ```
+
+## Vcf QC (Post-alignment)
+
+### BcfTools stats
+
+Parses VCF or BCF and produces text file stats which is suitable for machine processing and can be plotted using plot-vcfstats.
   
   https://samtools.github.io/bcftools/bcftools.html#stats
   
@@ -82,13 +100,17 @@ java -jar \$EBROOTPICARD/picard.jar \
   bcftools stats  ${vcf_file}
   ```
 
-**VCFTools TsTv-by-count**   : Calculates the Transition / Transversion ratio as a function of alternative allele count. Only uses bi-allelic SNPs. The resulting output file has the suffix ".TsTv.count".
+### VCFTools TsTv-by-count
+
+Calculates the Transition / Transversion ratio as a function of alternative allele count. Only uses bi-allelic SNPs. The resulting output file has the suffix ".TsTv.count".
 
 ```
 vcftools --gzvcf ${vcf_file} --TsTv-by-count --out ${vcf_file.simpleName}_Vcftools_TsTv_count
 ```
 
-**VcfTools TsTv-by-qual**  : Calculates the Transition / Transversion ratio as a function of SNP quality threshold. Only uses bi-allelic SNPs. The resulting output file has the suffix ".TsTv.qual".
+### VcfTools TsTv-by-qual
+
+Calculates the Transition / Transversion ratio as a function of SNP quality threshold. Only uses bi-allelic SNPs. The resulting output file has the suffix ".TsTv.qual".
 
 ```
 vcftools --gzvcf ${vcf_file} --TsTv-by-qual --out ${vcf_file.simpleName}_Vcftools_TsTv_qual
@@ -96,7 +118,9 @@ vcftools --gzvcf ${vcf_file} --TsTv-by-qual --out ${vcf_file.simpleName}_Vcftool
   
   VcfTools details : https://vcftools.github.io/man_latest.html
 
-**VEP  statistics** : VEP writes an HTML file containing statistics pertaining to the results of your job - Included by default, just redirected the file to the QC folder 
+### VEP  statistics
+
+VEP writes an HTML file containing statistics pertaining to the results of your job - Included by default, just redirected the file to the QC folder 
   
   https://m.ensembl.org/info/docs/tools/vep/vep_formats.html#stats
   
@@ -111,19 +135,13 @@ vep \
         --stats_file ${vcf_file.simpleName}_VEP_stats
 ```
 
-### Agregator of QC results
+## Agregator of population QC results using MultiQC
   
- **MultiQC** : Aggregate results from bioinformatics analyses across many samples into a single report
+[MultiQC](https://multiqc.info) : Aggregate results from bioinformatics analyses across many samples into a single report
  
  Require to do one for the individual results (pre and post alignement) and another one for the population data
 
-  https://multiqc.info
 
-  ```
-singularity exec -B /mnt/scratch/SILENT/Act3/ -B /mnt/common/SILENT/Act3/ /mnt/common/SILENT/Act3/singularity/multiqc-1.9.sif \
-multiqc ${params.outdir_ind}/${version}/QC/
-  ```
-  
   ```
 singularity exec -B /mnt/scratch/SILENT/Act3/ -B /mnt/common/SILENT/Act3/ /mnt/common/SILENT/Act3/singularity/multiqc-1.9.sif \
 multiqc $params.outdir_pop/${version}/QC/
