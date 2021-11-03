@@ -63,13 +63,14 @@ java -jar \$EBROOTPICARD/picard.jar \
   PICARD full list : https://broadinstitute.github.io/picard/command-line-overview.html
   
 
------ Not implemented -----
+----- Bamtools Stats is not in the pipeline -----
 
 **Bamtools Stats** : The command bamtools stats prints general alignment statistics from the BAM file.
   
   https://hcc.unl.edu/docs/applications/app_specific/bioinformatics_tools/data_manipulation_tools/bamtools/running_bamtools_commands/
 
----------------------------
+----- Bamtools Stats is not in the pipeline -----
+
 
 ### Vcf QC (Post-alignment)[SNV, MT, SV]
 
