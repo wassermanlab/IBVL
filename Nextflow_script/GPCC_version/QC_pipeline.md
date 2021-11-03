@@ -64,6 +64,7 @@ java -jar \$EBROOTPICARD/picard.jar \
   
 
 ----- Not implemented -----
+
 **Bamtools Stats** : The command bamtools stats prints general alignment statistics from the BAM file.
   
   https://hcc.unl.edu/docs/applications/app_specific/bioinformatics_tools/data_manipulation_tools/bamtools/running_bamtools_commands/
