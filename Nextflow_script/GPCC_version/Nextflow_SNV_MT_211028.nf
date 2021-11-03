@@ -401,7 +401,8 @@ process bcf_to_vcf {
 	path outdir_pop from params.outdir_pop
 
 	output :
-	file '*.vcf.gz' optional true into bcf_to_vcf
+	file '*.vcf.gz' into bcf_to_vcf
+	file '*.vcf.gz.tbi' into bcf_to_vcf_index
 
         publishDir "$params.outdir_pop/${version}/", mode: 'copy'
 
@@ -416,8 +417,8 @@ process bcf_to_vcf {
 
         module load singularity
 
-        singularity exec -B /home -B /project -B /scratch -B /localscratch /home/correard/scratch/SnakeMake_VariantCalling/MT/Mutect2/gatk.sif \
-        gatk --java-options "-Xmx4G" \
+	singularity exec -B /mnt/scratch/SILENT/Act3/ -B /mnt/common/SILENT/Act3/ /mnt/common/SILENT/Act3/singularity/gatk4-4.2.0.sif \
+        gatk  --java-options "-Xmx4G" \
        IndexFeatureFile \
         -I ${bcf_file.simpleName}.vcf.gz
 	"""
@@ -892,9 +893,9 @@ process MT_shift_variants {
 	path outdir_ind from params.outdir_ind
 
 	output :
-	file '*_merged1_sorted.vcf.gz' into MT_shift_variants
+	file '*_merged1_sorted.vcf.gz*' into MT_shift_variants
 
-	publishDir "$params.outdir_ind/${version}/Mutect2/", glob :'*_chrM_Mutect2_filtered_trimmed_sorted.vcf.gz', mode: 'copy'
+	publishDir "$params.outdir_ind/${version}/Mutect2/", glob :'*_chrM_Mutect2_filtered_trimmed_sorted.vcf.gz*', mode: 'copy'
 
 	script :
 	"""
@@ -905,7 +906,6 @@ process MT_shift_variants {
 	echo ${vcf_fiiltered_trimmed_CR_region_chrM.simpleName}
 	sample_name=\$(echo ${vcf_fiiltered_trimmed_CR_region_chrM.simpleName} | cut -d _ -f 1)
 	echo \$sample_name
-	echo ${vcf_fiiltered_trimmed_nonCR_region_chrM.simpleName}
 	gzip -cd ${vcf_fiiltered_trimmed_CR_region_chrM.simpleName}.vcf.gz | sed '/^#/d'  | gzip -c > ${vcf_fiiltered_trimmed_CR_region_chrM.simpleName}_NoHeader.vcf.gz
 
 	gzip -cd ${vcf_fiiltered_trimmed_CR_region_chrM.simpleName}.vcf.gz | grep ^# | gzip -c  > ${vcf_fiiltered_trimmed_CR_region_chrM.simpleName}_Header.vcf.gz
@@ -959,6 +959,7 @@ process MT_merge_samples {
 	
 	output:
 	file '*_filtered.vcf.gz' into MT_merge_samples
+        file '*_filtered.vcf.gz.*' into MT_merge_samples_index
 
 	publishDir "$params.outdir_pop/${version}/", mode: 'copy'
 
@@ -972,7 +973,7 @@ process MT_merge_samples {
 
 	module load singularity 
 
-        singularity exec -B /home -B /project -B /scratch -B /localscratch /home/correard/scratch/SnakeMake_VariantCalling/MT/Mutect2/gatk.sif \
+         singularity exec -B /mnt/scratch/SILENT/Act3/ -B /mnt/common/SILENT/Act3/ /mnt/common/SILENT/Act3/singularity/gatk4-4.2.0.sif \
         gatk --java-options "-Xmx4G" \
        IndexFeatureFile \
         -I ${version}_merged_chrM_Mutect2_filtered.vcf.gz
@@ -988,10 +989,13 @@ process MT_merge_samples {
 
 process Bcftools_stats {
 	memory '4G'
+	cpus 8
 
 	input :
-	file(vcf_file) from MT_merge_samples
-	file(vcf_file) from bcf_to_vcf
+	file(vcf_file_MT) from MT_merge_samples
+        file(vcf_file_MT_index) from MT_merge_samples_index
+	file(vcf_file_SNV) from bcf_to_vcf
+        file(vcf_file_SNV_index) from bcf_to_vcf_index
 	val version from params.version
 	path outdir_pop from params.outdir_pop
 
@@ -1006,42 +1010,44 @@ process Bcftools_stats {
 	source \$ANNOTATEVARIANTS_INSTALL/opt/miniconda3/etc/profile.d/conda.sh
 	conda activate \$ANNOTATEVARIANTS_INSTALL/opt/AnnotateVariantsEnvironment
 
-	echo ${vcf_file.simpleName}
-	bcftools stats  ${vcf_file}
+	bcftools stats ${vcf_file_MT} > ${vcf_file_MT.simpleName}_bcftools_stat
+	bcftools stats ${vcf_file_SNV} > ${vcf_file_SNV.simpleName}_bcftools_stat
 	"""
 }
 
 //VcfTools TsTv_by_count
+// Only performed on SNV as : Error: Polyploidy found, and not supported by vcftools for MT variants
+// Do not work on GPCC while it works on Genome Canada, error message : Segmentation fault      (core dumped)
 
-process Vcftools_TsTv_by_count {
-	memory '4G'
+//process Vcftools_TsTv_by_count {
+//	memory '8G'
+//       cpus 8
 
-	input :
-	file(vcf_file) from MT_merge_samples
-	file(vcf_file) from bcf_to_vcf
-	val version from params.version
-	path outdir_pop from params.outdir_pop
+//	input :
+//	file(vcf_file_SNV) from bcf_to_vcf
+//	val version from params.version
+//	path outdir_pop from params.outdir_pop
 
-	output :
-	file '*' into Vcftools_TsTv_by_count
+//	output :
+//	file '*' into Vcftools_TsTv_by_count
 
-	publishDir "$params.outdir_pop/${version}/QC/Vcftools_TsTv/", mode: 'copy'
+//	publishDir "$params.outdir_pop/${version}/QC/Vcftools_TsTv/", mode: 'copy'
 
-	script :
-	"""
-	# Unload bcchr, and load cvmfs
-	# unload_bcchr
-	source /cm/shared/BCCHR-apps/env_vars/unset_BCM.sh
-	# load cvmfs
-	source /cvmfs/soft.computecanada.ca/config/profile/bash.sh
-	
-	module load StdEnv/2020	
-	module load vcftools
+//	script :
+//	"""
+//	# Unload bcchr, and load cvmfs
+//	# unload_bcchr
+//	source /cm/shared/BCCHR-apps/env_vars/unset_BCM.sh
+//	# load cvmfs
+//	source /cvmfs/soft.computecanada.ca/config/profile/bash.sh
+//	
+//	module load StdEnv/2020	
+//	module load vcftools
 
-	echo ${vcf_file.simpleName}
-	vcftools --gzvcf ${vcf_file} --TsTv-by-count --out ${vcf_file.simpleName}_Vcftools_TsTv_count
-	"""
-}
+//	echo ${vcf_file_SNV.simpleName}
+//	vcftools --gzvcf ${vcf_file_SNV} --TsTv-by-count --out ${vcf_file_SNV.simpleName}_Vcftools_TsTv_count
+//	"""
+//}
 
 //VcfTools TsTv_by_qual
 
@@ -1049,8 +1055,8 @@ process Vcftools_TsTv_by_qual {
         memory '4G'
 
         input :
-        file(vcf_file) from MT_merge_samples
-        file(vcf_file) from bcf_to_vcf
+        file(vcf_file_MT) from MT_merge_samples
+        file(vcf_file_SNV) from bcf_to_vcf
         val version from params.version
         path outdir_pop from params.outdir_pop
 
@@ -1070,9 +1076,11 @@ process Vcftools_TsTv_by_qual {
         module load StdEnv/2020
         module load vcftools
 
-        echo ${vcf_file.simpleName}
-        vcftools --gzvcf ${vcf_file} --TsTv-by-qual --out ${vcf_file.simpleName}_Vcftools_TsTv_qual
-        """
+        echo ${vcf_file_MT.simpleName}
+	echo ${vcf_file_SNV.simpleName}
+        vcftools --gzvcf ${vcf_file_MT} --TsTv-by-qual --out ${vcf_file_MT.simpleName}_Vcftools_TsTv_qual
+        vcftools --gzvcf ${vcf_file_SNV} --TsTv-by-qual --out ${vcf_file_SNV.simpleName}_Vcftools_TsTv_qual
+	"""
 }
 
 
@@ -1084,8 +1092,8 @@ process annotation_table {
         memory '4G'
 
         input :
-        file(vcf_file) from MT_merge_samples
-        file(vcf_file) from bcf_to_vcf        
+        file(vcf_file_MT) from MT_merge_samples
+        file(vcf_file_SNV) from bcf_to_vcf        
         val version from params.version
         path outdir_pop from params.outdir_pop
 
@@ -1098,21 +1106,33 @@ process annotation_table {
 
         script :
         """
-        ANNOTATEVARIANTS_INSTALL=/mnt/common/WASSERMAN_SOFTWARE/AnnotateVariants/
+	ANNOTATEVARIANTS_INSTALL=/mnt/common/WASSERMAN_SOFTWARE/AnnotateVariants/
         source \$ANNOTATEVARIANTS_INSTALL/opt/miniconda3/etc/profile.d/conda.sh
         conda activate \$ANNOTATEVARIANTS_INSTALL/opt/AnnotateVariantsEnvironment
 
-        echo ${vcf_file}
-        echo ${vcf_file.simpleName}
+        echo ${vcf_file_MT}
+        echo ${vcf_file_MT.simpleName}
 
-        vep \
-        -i ${vcf_file} \
-        -o ${vcf_file.simpleName}_${version}_annotation_tab.tsv \
+	vep \
+        -i ${vcf_file_MT} \
+        -o ${vcf_file_MT.simpleName}_${version}_annotation_tab.tsv \
+	--offline \
         --cache \
         --dir_cache /mnt/common/DATABASES/REFERENCES/GRCh38/VEP/ \
         --everything \
         --tab \
-        --stats_file ${vcf_file.simpleName}_VEP_stats
+        --stats_file ${vcf_file_MT.simpleName}_VEP_stats
+
+	vep \
+        -i ${vcf_file_SNV} \
+        -o ${vcf_file_SNV.simpleName}_${version}_annotation_tab.tsv \
+        --offline \
+	--cache \
+        --dir_cache /mnt/common/DATABASES/REFERENCES/GRCh38/VEP/ \
+        --everything \
+        --tab \
+        --stats_file ${vcf_file_SNV.simpleName}_VEP_stats
+
         """
 }
 
@@ -1127,6 +1147,7 @@ process SNV_frequency_table {
 
         input :
         file(SNV_vcf) from bcf_to_vcf
+	file(SNV_vcf_index) from bcf_to_vcf_index
         val version from params.version
         path outdir_pop from params.outdir_pop
 
@@ -1142,7 +1163,7 @@ process SNV_frequency_table {
          echo ${SNV_vcf}
          echo ${SNV_vcf.simpleName}
 
-        singularity exec -B /mnt/scratch/SILENT/Act3/ -B /mnt/common/SILENT/Act3/ /mnt/common/SILENT/Act3/singularity/gatk4-4.2.0.sif \
+         singularity exec -B /mnt/scratch/SILENT/Act3/ -B /mnt/common/SILENT/Act3/ /mnt/common/SILENT/Act3/singularity/gatk4-4.2.0.sif \
         gatk --java-options "-Xmx4G" \
        VariantsToTable \
         -V ${SNV_vcf} \
@@ -1176,7 +1197,8 @@ process MT_frequency_table {
 
         input :
         file(MT_vcf) from MT_merge_samples
-        val version from params.version
+        file(MT_vcf_index) from MT_merge_samples_index
+	val version from params.version
         path outdir_pop from params.outdir_pop
 
         output :
@@ -1199,51 +1221,4 @@ process MT_frequency_table {
         -F CHROM \
         -F POS \
         -F TYPE\
-        -F ID \
-        -F REF \
-        -F ALT \
-        -F QUAL \
-        -F FILTER \
-        -F AF \
-        -F HET \
-        -F HOM-REF \
-        -F HOM-VAR \
-        -F NO-CALL \
-        -F MULTI-ALLELIC \
-        -F Consequence \
-        -GF AF
-        """
-}
-
-
-
-//
-// MultiQC to aggregate all the QC data
-//
-
-
-
-process multiqc_pop {
-        memory '4G'
-
-        input :
-        file '*' from vep_stat.collect()
-        file '*' from Vcftools_TsTv_by_count.collect()
-        file '*' from Vcftools_TsTv_by_qual.collect()
-        file '*' from Bcftools_stats.collect()
-        val version from params.version
-        path outdir_pop from params.outdir_pop
-
-        output :
-        file '*' into multiqc_pop
-
-        publishDir "$params.outdir_pop/${version}/QC/multiQC/", mode: 'copy'
-
-        script :
-        """
-        module load singularity
-
-        singularity exec -B /mnt/scratch/SILENT/Act3/ -B /mnt/common/SILENT/Act3/ /mnt/common/SILENT/Act3/singularity/multiqc-1.9.sif \
-        multiqc $params.outdir_pop/${version}/QC/
-        """
-}
+     
