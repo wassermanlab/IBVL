@@ -12,8 +12,8 @@ It is necessary to download the reference genome as well as the shifted referenc
 Fasta downloaded from [here](https://github.com/broadinstitute/gatk/tree/master/src/test/resources/large/mitochondria_references)
 
 ```
-	bwa index ${ref_genome_MT_file}
-	bwa index ${ref_genome_MT_shifted_file}
+bwa index ${ref_genome_MT_file}
+bwa index ${ref_genome_MT_shifted_file}
  ```
 
 ## MT variant calling
@@ -35,7 +35,7 @@ From BioRXiv paper : Pull reads from chrM (GATK PrintReads --read-filter MateOnS
  **Potential future update in the IBVL pipeline** : Also extract the reads that maps to NuMTs.
  
  ```
- 	singularity exec -B /mnt/scratch/SILENT/Act3/ -B /mnt/common/SILENT/Act3/ /mnt/common/SILENT/Act3/singularity/gatk4-4.2.0.sif \
+singularity exec -B /mnt/scratch/SILENT/Act3/ -B /mnt/common/SILENT/Act3/ /mnt/common/SILENT/Act3/singularity/gatk4-4.2.0.sif \
 	gatk PrintReads \
 	-L chrM \
 	--read-filter MateOnSameContigOrNoMappedMateReadFilter \
@@ -75,7 +75,7 @@ singularity exec -B /mnt/scratch/SILENT/Act3/ -B /mnt/common/SILENT/Act3/ /mnt/c
 **Convert back the bam file to fastq using [SamToFastq](https://gatk.broadinstitute.org/hc/en-us/articles/360036485372-SamToFastq-Picard-)**
 
 ```
-	singularity exec -B /mnt/scratch/SILENT/Act3/ -B /mnt/common/SILENT/Act3/ /mnt/common/SILENT/Act3/singularity/gatk4-4.2.0.sif \
+singularity exec -B /mnt/scratch/SILENT/Act3/ -B /mnt/common/SILENT/Act3/ /mnt/common/SILENT/Act3/singularity/gatk4-4.2.0.sif \
         gatk SamToFastq \
 	INPUT=${revertSam_bam.baseName}.bam \
 	FASTQ=${revertSam_bam.baseName}.fastq \
@@ -86,9 +86,9 @@ singularity exec -B /mnt/scratch/SILENT/Act3/ -B /mnt/common/SILENT/Act3/ /mnt/c
 **Align Fastq to MT reference genome (also run using the shifted MT reference genome) using [bwa](http://bio-bwa.sourceforge.net/bwa.shtml) and [SamTools](http://www.htslib.org/doc/samtools-index.html)**
  
  ```
- 	bwa mem -R "@RG\\tID:${fastqfromsam.baseName}\\tSM:${fastqfromsam.baseName}\\tPL:illumina" Homo_sapiens_assembly38.chrM.fasta ${fastqfromsam.baseName}.fastq | samtools view -u -bS | samtools sort > ${fastqfromsam.baseName}_chrM.bam
+bwa mem -R "@RG\\tID:${fastqfromsam.baseName}\\tSM:${fastqfromsam.baseName}\\tPL:illumina" Homo_sapiens_assembly38.chrM.fasta ${fastqfromsam.baseName}.fastq | samtools view -u -bS | samtools sort > ${fastqfromsam.baseName}_chrM.bam
   
-	samtools index ${fastqfromsam.baseName}_chrM.bam
+samtools index ${fastqfromsam.baseName}_chrM.bam
  ```
  
 ### Identify Duplicate Reads using [MarkDuplicates](https://gatk.broadinstitute.org/hc/en-us/articles/360036729891-MarkDuplicates-Picard-)
@@ -119,7 +119,7 @@ From BioRXiv paper : Call variants (GATK Mutect2 --mitochondria-mode -- annotati
 **Future update in the IBVL pipeline** : Setting the advanced option --median-autosomal-coverage argument
  
  ```
- 	singularity exec -B /mnt/scratch/SILENT/Act3/ -B /mnt/common/SILENT/Act3/ /mnt/common/SILENT/Act3/singularity/gatk4-4.2.0.sif \
+singularity exec -B /mnt/scratch/SILENT/Act3/ -B /mnt/common/SILENT/Act3/ /mnt/common/SILENT/Act3/singularity/gatk4-4.2.0.sif \
 	gatk Mutect2 \
 	-R Homo_sapiens_assembly38.chrM.fasta \
 	-I ${bam_MT.simpleName}.bam \
@@ -141,7 +141,7 @@ From BioRXiv paper : Mutect2 variants were then filtered (GATK FilterMutectCalls
   **Future update in the IBVL pipeline** : Add the --autosomal-coverage parameter
   
  ```
- 	singularity exec -B /mnt/scratch/SILENT/Act3/ -B /mnt/common/SILENT/Act3/ /mnt/common/SILENT/Act3/singularity/gatk4-4.2.0.sif \
+singularity exec -B /mnt/scratch/SILENT/Act3/ -B /mnt/common/SILENT/Act3/ /mnt/common/SILENT/Act3/singularity/gatk4-4.2.0.sif \
 	gatk FilterMutectCalls \
 	-V ${vcf_chrM.simpleName}.vcf.gz \
 	-R Homo_sapiens_assembly38.chrM.fasta \
@@ -209,7 +209,7 @@ singularity exec -B /mnt/scratch/SILENT/Act3/ -B /mnt/common/SILENT/Act3/ /mnt/c
   ```
 gzip -cd ${vcf_fiiltered_trimmed_CR_region_chrM.simpleName}_NoHeader.vcf.gz | awk ' \$2>=8001 {print \$1"\t"\$2-8000"\t"\$3"\t"\$4"\t"\$5"\t"\$6"\t"\$7"\t"\$8"\t"\$9"\t"\$10} \$2<=8000 {print \$1"\t"\$2+8569"\t"\$3"\t"\$4"\t"\$5"\t"\$6"\t"\$7"\t"\$8"\t"\$9"\t"\$10} ' | gzip -c  > ${vcf_fiiltered_trimmed_CR_region_chrM.simpleName}_NoHeader_ShiftedBack.vcf.gz
 
-	cat \${sample_name}_sorted_chrM_RevertSam_chrM_Mutect2_filtered_trimmed_NonControlRegion.vcf.gz ${vcf_fiiltered_trimmed_CR_region_chrM.simpleName}_NoHeader_ShiftedBack.vcf.gz > ${vcf_fiiltered_trimmed_CR_region_chrM.simpleName}_merged1.vcf.gz
+cat \${sample_name}_sorted_chrM_RevertSam_chrM_Mutect2_filtered_trimmed_NonControlRegion.vcf.gz ${vcf_fiiltered_trimmed_CR_region_chrM.simpleName}_NoHeader_ShiftedBack.vcf.gz > ${vcf_fiiltered_trimmed_CR_region_chrM.simpleName}_merged1.vcf.gz
 
 ```
 
@@ -249,7 +249,7 @@ Cf main Alignement and SNV calling file
 Only works for the MT frequency as it is necessary to calculate the VAF (Variant allele fraction or heteroplasmy levels)
 	
 ```
-        singularity exec -B /mnt/scratch/SILENT/Act3/ -B /mnt/common/SILENT/Act3/ /mnt/common/SILENT/Act3/singularity/gatk4-4.2.0.sif \
+singularity exec -B /mnt/scratch/SILENT/Act3/ -B /mnt/common/SILENT/Act3/ /mnt/common/SILENT/Act3/singularity/gatk4-4.2.0.sif \
         gatk --java-options "-Xmx4G" \
        VariantsToTable \
         -V ${MT_vcf} \
