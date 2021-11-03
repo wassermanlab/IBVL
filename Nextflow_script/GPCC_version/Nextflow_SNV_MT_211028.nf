@@ -1221,4 +1221,50 @@ process MT_frequency_table {
         -F CHROM \
         -F POS \
         -F TYPE\
-     
+        -F ID \
+        -F REF \
+        -F ALT \
+        -F QUAL \
+        -F FILTER \
+        -F AF \
+        -F HET \
+        -F HOM-REF \
+        -F HOM-VAR \
+        -F NO-CALL \
+        -F MULTI-ALLELIC \
+        -F Consequence \
+        -GF AF
+        """
+}
+
+
+
+//
+// MultiQC to aggregate all the QC data
+//
+
+
+
+process multiqc_pop {
+        memory '4G'
+
+        input :
+        file '*' from vep_stat.collect()
+        file '*' from Vcftools_TsTv_by_qual.collect()
+        file '*' from Bcftools_stats.collect()
+        val version from params.version
+        path outdir_pop from params.outdir_pop
+
+        output :
+        file '*' into multiqc_pop
+
+        publishDir "$params.outdir_pop/${version}/QC/multiQC/", mode: 'copy'
+
+        script :
+        """
+        module load singularity
+
+        singularity exec -B /mnt/scratch/SILENT/Act3/ -B /mnt/common/SILENT/Act3/ /mnt/common/SILENT/Act3/singularity/multiqc-1.9.sif \
+        multiqc $params.outdir_pop/${version}/QC/
+        """
+}
