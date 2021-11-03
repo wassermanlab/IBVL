@@ -33,7 +33,7 @@ mosdepth ${bam.simpleName} ${bam}
 
 Picard offers several independant QC tools, the ones included in the pipeline are described below.
 
-**[Picard CollectWgsMetrics]** (https://gatk.broadinstitute.org/hc/en-us/articles/360037269351-CollectWgsMetrics-Picard-)
+[**Picard CollectWgsMetrics**] (https://gatk.broadinstitute.org/hc/en-us/articles/360037269351-CollectWgsMetrics-Picard-)
 
 Collect metrics about coverage and performance of whole genome sequencing (WGS) experiments. This tool collects metrics about the fractions of reads that pass base- and mapping-quality filters as well as coverage (read-depth) levels for WGS analyses. Both minimum base- and mapping-quality values as well as the maximum read depths (coverage cap) are user defined.
   
