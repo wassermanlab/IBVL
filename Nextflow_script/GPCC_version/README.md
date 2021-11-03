@@ -3,16 +3,23 @@
 
 This readme is for everyone to comment on things to add / modify in the script
 
-This readme file concern the part that are common for all the pipelines (alignemnt, pre and post alignement QC) and the SNV calling.
+The complete pipeline (form fastq to annotated variant frequencies) is implemented within one nextflow pipeline.
 
-For the other parts of the pipeline, refer to :
+However, for clarity and easier improvements, the pipeline description is splitted in several files :
 
-- The [Readme_MT](https://github.com/scorreard/IBVL/blob/main/Nextflow_script/GPCC_version/Readme_MT.md) file for the parts specific to MT variant calling 
+- The [Alignment_SNV_pipeline.md](https://github.com/scorreard/IBVL/blob/main/Nextflow_script/GPCC_version/Alignment_SNV_pipeline.md) for the alignement step, SNV calling, SNV annotation and SNV frequency calculation. Some parts are common with the Mitochondrial and SV pipeline.
 
-- The Readme_SV file for the parts specific to SV calling
+- The [Mitochondria_pipeline.md](https://github.com/scorreard/IBVL/blob/main/Nextflow_script/GPCC_version/Mitochondria_pipeline.md) for the part that are specific to the mitochondrial pipeline.
 
+- The [QC_pipeline.md](https://github.com/scorreard/IBVL/blob/main/Nextflow_script/GPCC_version/QC_pipeline.md) for the quality control steps of the pipeline, including pre and post alignemnt QC.
 
-# .sh file
+- The SV_pipeline.md : To do.
+
+# Nextflow config and sh files
+
+For nextflow to work, a config file must be created, and the nextflow script must be launched using slurm scheduler and a sh file.
+
+## .sh file
 
 Which tracing and vizualisation to use, details are available here : https://www.nextflow.io/docs/latest/tracing.html
 
@@ -20,7 +27,7 @@ Which tracing and vizualisation to use, details are available here : https://www
 nextflow log <run name> --resume -with-report [file name] --with-trace -with-timeline [file name] -with-dag flowchart.png
 ```  
 
-# .config file
+## .config file
 
 Full list available here : https://www.nextflow.io/docs/latest/config.html
 
