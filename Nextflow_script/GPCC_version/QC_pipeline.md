@@ -18,18 +18,22 @@ This Readme only concerns the Quality control parts of the pipeline, including b
   
   ## Bam QC (Post-alignment)
   
-### Mosdept   [Paper](https://pubmed.ncbi.nlm.nih.gov/29096012/)   -    [GitHub](https://github.com/brentp/mosdepth)
-  
+### Mosdept
 
-Command-line tool for rapidly calculating genome-wide sequencing coverage.
-  
+[Paper](https://pubmed.ncbi.nlm.nih.gov/29096012/)   -    [GitHub](https://github.com/brentp/mosdepth)
+
+Command-line tool for rapidly calculating genome-wide sequencing coverage. 
 
   ```
 singularity exec -B /mnt/scratch/SILENT/Act3/ -B /mnt/common/SILENT/Act3/ /mnt/common/SILENT/Act3/singularity/mosdepth-0.3.2.sif \
 mosdepth ${bam.simpleName} ${bam}
   ```
-  
-### Picard CollectWgsMetrics
+
+### [PICARD](https://broadinstitute.github.io/picard/command-line-overview.html)
+
+Picard offers several independant QC tools, the ones included in the pipeline are described below.
+
+**[Picard CollectWgsMetrics]** (https://gatk.broadinstitute.org/hc/en-us/articles/360037269351-CollectWgsMetrics-Picard-)
 
 Collect metrics about coverage and performance of whole genome sequencing (WGS) experiments. This tool collects metrics about the fractions of reads that pass base- and mapping-quality filters as well as coverage (read-depth) levels for WGS analyses. Both minimum base- and mapping-quality values as well as the maximum read depths (coverage cap) are user defined.
   
@@ -41,7 +45,7 @@ singularity exec -B /mnt/common/DATABASES/REFERENCES/ -B /mnt/scratch/SILENT/Act
 	-R ${ref_genome_cvmfs_file}
   ```
 
-### PICARD CollectAlignmentSummaryMetrics
+**[PICARD CollectAlignmentSummaryMetrics]** (https://gatk.broadinstitute.org/hc/en-us/articles/360036883111-CollectAlignmentSummaryMetrics-Picard-)
 
 Produces a summary of alignment metrics from a SAM or BAM file. This tool takes a SAM/BAM file input and produces metrics detailing the quality of the read alignments as well as the proportion of the reads that passed machine signal-to-noise threshold quality filters.
   
@@ -52,7 +56,7 @@ gatk CollectAlignmentSummaryMetrics \
 	-O ${bam.simpleName}_Picard_Alignment
   ```
 
-### PICARD QualityScoreDistribution
+**[PICARD QualityScoreDistribution]** (https://gatk.broadinstitute.org/hc/en-us/articles/360037057312-QualityScoreDistribution-Picard-)
 
 This tool is used for determining the overall 'quality' for a library in a given run. To that effect, it outputs a chart and tables indicating the range of quality scores and the total numbers of bases corresponding to those scores. 
   
@@ -66,18 +70,12 @@ java -jar \$EBROOTPICARD/picard.jar \
 	CHART= ${bam.simpleName}_qual_score_dist.pdf
   ```
 
-  PICARD full list : https://broadinstitute.github.io/picard/command-line-overview.html
-  
-
-### Bamtools Stats
+### [Bamtools Stats] (https://hcc.unl.edu/docs/applications/app_specific/bioinformatics_tools/data_manipulation_tools/bamtools/running_bamtools_commands/)
 
 **----- Bamtools Stats is not in the pipeline -----**
 
 The command bamtools stats prints general alignment statistics from the BAM file.
   
-  https://hcc.unl.edu/docs/applications/app_specific/bioinformatics_tools/data_manipulation_tools/bamtools/running_bamtools_commands/
-
-
 ## Agregation of Individual QC results using MultiQC
 
 [MultiQC](https://multiqc.info) : Aggregate results from bioinformatics analyses across many samples into a single report
