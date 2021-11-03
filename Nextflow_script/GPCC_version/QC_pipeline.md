@@ -1,4 +1,9 @@
- 
+ # QC_pipeline file
+
+This readme is for everyone to comment on things to add / modify in the script
+
+This Readme only concerns the Quality control parts of the pipeline, including both pre and post alignement and post-calling QC.
+
   
   ## QC
   
