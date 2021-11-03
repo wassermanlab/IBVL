@@ -22,7 +22,7 @@ The mitochondrial genome poses several challenges to the identification and unde
 
 - [The GATK best practices workflow for Mitochondrial short variant discovery (SNVs + Indels)](https://gatk.broadinstitute.org/hc/en-us/articles/4403870837275-Mitochondrial-short-variant-discovery-SNVs-Indels-). Most of the text in the repo is coming from the GATK website.
 
--[Laricchia et al, 2021, bioRXiv](https://www.biorxiv.org/content/10.1101/2021.07.23.453510v1.full.pdf)
+- [Laricchia et al, 2021, bioRXiv](https://www.biorxiv.org/content/10.1101/2021.07.23.453510v1.full.pdf)
   
 The pipeline is composed of many step described below. The general idea from the GATK pipeline was kept while some step are slightly different as the full description from GATK was not avalable at the time of implementation of the IBVL pipeline.
  
