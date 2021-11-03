@@ -89,49 +89,59 @@ multiqc ${params.outdir_ind}/${version}/QC/
 
 ## Vcf QC (Post-alignment)
 
-### BcfTools stats
+### [BcfTools stats](https://samtools.github.io/bcftools/bcftools.html#stats)
+
+Used for SNV and MT vcf
 
 Parses VCF or BCF and produces text file stats which is suitable for machine processing and can be plotted using plot-vcfstats.
   
-  https://samtools.github.io/bcftools/bcftools.html#stats
-  
   ```
-  bcftools stats  ${vcf_file}
-  ```
-
-### VCFTools TsTv-by-count
-
-Calculates the Transition / Transversion ratio as a function of alternative allele count. Only uses bi-allelic SNPs. The resulting output file has the suffix ".TsTv.count".
-
-```
-vcftools --gzvcf ${vcf_file} --TsTv-by-count --out ${vcf_file.simpleName}_Vcftools_TsTv_count
+bcftools stats ${vcf_file_MT/SNV} > ${vcf_file_MT/SNV.simpleName}_bcftools_stat
 ```
 
-### VcfTools TsTv-by-qual
+### [VcfTools](https://vcftools.github.io/man_latest.html)
+
+VcfTools offers several QC options, the ones included in the pipeline are described below
+
+**VcfTools TsTv-by-qual**
 
 Calculates the Transition / Transversion ratio as a function of SNP quality threshold. Only uses bi-allelic SNPs. The resulting output file has the suffix ".TsTv.qual".
 
-```
-vcftools --gzvcf ${vcf_file} --TsTv-by-qual --out ${vcf_file.simpleName}_Vcftools_TsTv_qual
-```
-  
-  VcfTools details : https://vcftools.github.io/man_latest.html
+Used for SNV and MT vcf
 
-### VEP  statistics
+```
+vcftools --gzvcf ${vcf_file_MT/SNV} --TsTv-by-qual --out ${vcf_file_MT/SNV.simpleName}_Vcftools_TsTv_qual
+```
+
+**VCFTools TsTv-by-count**
+
+Calculates the Transition / Transversion ratio as a function of alternative allele count. Only uses bi-allelic SNPs. The resulting output file has the suffix ".TsTv.count".
+
+**----- VCFTools TsTv-by-count is not in the pipeline -----**
+
+Do not work on MT vcf : Error: Polyploidy found, and not supported by vcftools for MT variants
+
+For SNV vcf, it does work on Genome Canada but not in GPCC (Even whle  unmounting GPCC and mounting Compute Canada)
+
+Error message : Segmentation fault (core dumped)
+
+### [VEP  statistics](https://m.ensembl.org/info/docs/tools/vep/vep_formats.html#stats)
 
 VEP writes an HTML file containing statistics pertaining to the results of your job - Included by default, just redirected the file to the QC folder 
-  
-  https://m.ensembl.org/info/docs/tools/vep/vep_formats.html#stats
+
+Used for SNV and MT vcf
   
 ```
 vep \
-        -i ${vcf_file} \
-        -o ${vcf_file.simpleName}_${version}_annotation_tab.tsv \
+        -i ${vcf_file_MT/SNV} \
+        -o ${vcf_file_MT/SNV.simpleName}_${version}_annotation_tab.tsv \
+	--offline \
         --cache \
         --dir_cache /mnt/common/DATABASES/REFERENCES/GRCh38/VEP/ \
         --everything \
         --tab \
-        --stats_file ${vcf_file.simpleName}_VEP_stats
+        --stats_file ${vcf_file_MT/SNV.simpleName}_VEP_stats
+
 ```
 
 ## Agregator of population QC results using MultiQC
