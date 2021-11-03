@@ -6,11 +6,13 @@ This Readme only concerns the Quality control parts of the pipeline, including b
   
   ## Fastq QC (pre-alignment)
   
-  **fastqc** https://www.bioinformatics.babraham.ac.uk/projects/fastqc/
+### [fastqc]( https://www.bioinformatics.babraham.ac.uk/projects/fastqc/)
   
 ```
   fastqc ${fastq_file}
   ```
+  
+  ### Other tool
   
   Would be great to use a second one?
   
