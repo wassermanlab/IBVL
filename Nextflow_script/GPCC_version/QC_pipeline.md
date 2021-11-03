@@ -70,7 +70,7 @@ java -jar \$EBROOTPICARD/picard.jar \
 	CHART= ${bam.simpleName}_qual_score_dist.pdf
   ```
 
-### [Bamtools Stats] (https://hcc.unl.edu/docs/applications/app_specific/bioinformatics_tools/data_manipulation_tools/bamtools/running_bamtools_commands/)
+### [Bamtools Stats](https://hcc.unl.edu/docs/applications/app_specific/bioinformatics_tools/data_manipulation_tools/bamtools/running_bamtools_commands/)
 
 **----- Bamtools Stats is not in the pipeline -----**
 
