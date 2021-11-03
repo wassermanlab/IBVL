@@ -18,12 +18,12 @@ This Readme only concerns the Quality control parts of the pipeline, including b
   
   ## Bam QC (Post-alignment)
   
-### mosdept
+### Mosdept
 
 Command-line tool for rapidly calculating genome-wide sequencing coverage.
   
-  Paper : https://pubmed.ncbi.nlm.nih.gov/29096012/
-  GitHub : https://github.com/brentp/mosdepth
+  [Paper](https://pubmed.ncbi.nlm.nih.gov/29096012/)
+  [GitHub](https://github.com/brentp/mosdepth)
   
   ```
 singularity exec -B /mnt/scratch/SILENT/Act3/ -B /mnt/common/SILENT/Act3/ /mnt/common/SILENT/Act3/singularity/mosdepth-0.3.2.sif \
