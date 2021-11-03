@@ -19,6 +19,16 @@ This Readme only concerns the Quality control parts of the pipeline, including b
   
   ### Bam QC (Post-alignment)
   
+  **mosdepth** : command-line tool for rapidly calculating genome-wide sequencing coverage.
+  
+  Paper : https://pubmed.ncbi.nlm.nih.gov/29096012/
+  GitHub : https://github.com/brentp/mosdepth
+  
+  ```
+singularity exec -B /mnt/scratch/SILENT/Act3/ -B /mnt/common/SILENT/Act3/ /mnt/common/SILENT/Act3/singularity/mosdepth-0.3.2.sif \
+mosdepth ${bam.simpleName} ${bam}
+  ```
+  
 **Picard CollectWgsMetrics** : Collect metrics about coverage and performance of whole genome sequencing (WGS) experiments. This tool collects metrics about the fractions of reads that pass base- and mapping-quality filters as well as coverage (read-depth) levels for WGS analyses. Both minimum base- and mapping-quality values as well as the maximum read depths (coverage cap) are user defined.
   
   ```
@@ -52,19 +62,13 @@ java -jar \$EBROOTPICARD/picard.jar \
 
   PICARD full list : https://broadinstitute.github.io/picard/command-line-overview.html
   
-**mosdepth** : command-line tool for rapidly calculating genome-wide sequencing coverage.
-  
-  Paper : https://pubmed.ncbi.nlm.nih.gov/29096012/
-  GitHub : https://github.com/brentp/mosdepth
-  
-  ```
-singularity exec -B /mnt/scratch/SILENT/Act3/ -B /mnt/common/SILENT/Act3/ /mnt/common/SILENT/Act3/singularity/mosdepth-0.3.2.sif \
-mosdepth ${bam.simpleName} ${bam}
-  ```
 
+----- Not implemented -----
 **Bamtools Stats** : The command bamtools stats prints general alignment statistics from the BAM file.
   
   https://hcc.unl.edu/docs/applications/app_specific/bioinformatics_tools/data_manipulation_tools/bamtools/running_bamtools_commands/
+
+---------------------------
 
 ### Vcf QC (Post-alignment)[SNV, MT, SV]
 
