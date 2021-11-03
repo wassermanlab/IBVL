@@ -1,4 +1,11 @@
-  ## Alignment (Fastq --> Bam)
+ # Alignment_SNV_pipeline file
+
+This readme is for everyone to comment on things to add / modify in the script
+
+This Readme concerns the alignement and SNV part of the pipeline. Some parts are common with the MT and the SV pipeline.
+ 
+ 
+ ## Alignment (Fastq --> Bam)
   
 ```
 bwa mem -t 8 -R '@RG\\tID:${sampleId}\\tSM:${sampleId}' ${ref_genome_cvmfs_file} ${reads} | samtools view -Sb | samtools sort -o ${sampleId}_sorted.bam`
