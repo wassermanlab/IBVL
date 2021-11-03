@@ -72,9 +72,9 @@ java -jar \$EBROOTPICARD/picard.jar \
 
 ### [Bamtools Stats](https://hcc.unl.edu/docs/applications/app_specific/bioinformatics_tools/data_manipulation_tools/bamtools/running_bamtools_commands/)
 
-**----- Bamtools Stats is not in the pipeline -----**
-
 The command bamtools stats prints general alignment statistics from the BAM file.
+
+**----- Bamtools Stats is not in the pipeline -----**
   
 ## Agregation of Individual QC results using MultiQC
 
