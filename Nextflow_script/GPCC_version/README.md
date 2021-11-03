@@ -50,4 +50,5 @@ executor {
 ```  
 # .nf file
 
+The .nf file contains the whole pipeline used to produce the IBVL. Each part of the pipeline is described in the other md files.
  
