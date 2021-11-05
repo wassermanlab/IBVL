@@ -127,15 +127,17 @@ singularity exec -B /mnt/scratch/SILENT/Act3/ -B /mnt/common/SILENT/Act3/ /mnt/c
 	-O ${bam_MT.simpleName}_Mutect2.vcf.gz
   ```
   
-  ### LiftOver the variants called with the shifted reference 
+  ### Shift back the variants in the control region and merge the variants for one sample
   
-From GATK best practices website : 3 steps.
+  From GATK best practices website : 3 steps.
 
 1. Liftover the output VCF files. Tools involved: LiftoverVcf - This step returns the variant calls back to the standard numbering system with the original alignment (OA) tags.
 2. Combine the variant calls from the control region with the non-control region. Tools involved: MergeVcf - This step merges the output VCF file for the control region (BAM aligned to shifted reference) with the VCF file for the non-control region into a single variant file.
 3. Merge stats files for output VCFs. Tools Involved: Mutect2- MergeMutectStats - This step merges the stats file for the variant calls of the control region with the stats file for the variant calls of the non-control region.
 
 From BioRXiv paper : Variants called on the shifted reference were mapped back to standard coordinates (Picard LiftOver) and combined with variants from the non-control region.
+  
+  **LiftOver the variants called with the shifted reference using [LiftOverVcf](https://gatk.broadinstitute.org/hc/en-us/articles/360036347792-LiftoverVcf-Picard-)**
   
   ```
 singularity exec -B /mnt/common/DATABASES/REFERENCES/ -B /mnt/scratch/SILENT/Act3/ -B /mnt/common/SILENT/Act3/ /mnt/common/SILENT/Act3/singularity/gatk4-4.2.0.sif \
@@ -147,8 +149,7 @@ singularity exec -B /mnt/common/DATABASES/REFERENCES/ -B /mnt/scratch/SILENT/Act
 	R=${ref_genome_MT_file}
 ```
   
-  
-  ### Combine the variant calls from the control region with the non-control region
+**Combine the variant calls from the control region with the non-control region using [MergeVcfs](https://gatk.broadinstitute.org/hc/en-us/articles/360036713331-MergeVcfs-Picard-)**
   
   ```
 singularity exec -B /mnt/common/DATABASES/REFERENCES/ -B /mnt/scratch/SILENT/Act3/ -B /mnt/common/SILENT/Act3/ /mnt/common/SILENT/Act3/singularity/gatk4-4.2.0.sif \
@@ -159,7 +160,9 @@ singularity exec -B /mnt/common/DATABASES/REFERENCES/ -B /mnt/scratch/SILENT/Act
 ```
 
 
-### Merge stats files for output VCFs
+**Merge stats files for output VCFs using [Mutect2](https://gatk.broadinstitute.org/hc/en-us/articles/360051306691-Mutect2)**
+
+This step is necessary for the following steps of variant filetring (The stat file is essential for FilterMutectCalls
 
 ```
 singularity exec -B /mnt/common/DATABASES/REFERENCES/ -B /mnt/scratch/SILENT/Act3/ -B /mnt/common/SILENT/Act3/ /mnt/common/SILENT/Act3/singularity/gatk4-4.2.0.sif \
@@ -173,8 +176,9 @@ singularity exec -B /mnt/common/DATABASES/REFERENCES/ -B /mnt/scratch/SILENT/Act
  
  From GATK best practices website : Tools involved: FilterMutectCalls - This step filters the output VCF files based on specific parameters, such as a minimum allele fraction, maximum alternate allele count, and estimate of contamination. The --autosomal-coverage parameter specifically filters out potential NuMTs. Specifying the --mitochondrial-mode parameter automatically sets the filters to the mitochondrial defaults.
 
-From BioRXiv paper : Mutect2 variants were then filtered (GATK FilterMutectCalls --stats raw_vcf_stats --max-alt-allele-count 4 --mitochondria-mode --autosomal_coverage nDNA_MEDIAN_COV --min_allele_fraction 0.01)
+From BioRXiv paper : Mutect2 variants were then filtered (GATK FilterMutectCalls --stats raw_vcf_stats --max-alt-allele-count 4 --mitochondria-mode --autosomal_coverage nDNA_MEDIAN_COV --min_allele_fraction 0.01) and multi-allelic sites were split into different variants (LeftAlignAndTrimVariants --split-multi-allelics --dont-trim-alleles --keep-original-ac)
 
+**Variant filetrin using [FilterMutectCalls](https://gatk.broadinstitute.org/hc/en-us/articles/360036715731-FilterMutectCalls)**
  
  ```
 singularity exec -B /mnt/scratch/SILENT/Act3/ -B /mnt/common/SILENT/Act3/ /mnt/common/SILENT/Act3/singularity/gatk4-4.2.0.sif \
@@ -189,9 +193,7 @@ singularity exec -B /mnt/scratch/SILENT/Act3/ -B /mnt/common/SILENT/Act3/ /mnt/c
 
   **Future update in the IBVL pipeline** : Add the --autosomal-coverage parameter
 
-From GATK best practices website : Not mentionned
-
-From BioRXiv paper : Multi-allelic sites were split into different variants (LeftAlignAndTrimVariants --split-multi-allelics --dont-trim-alleles --keep-original-ac)
+**Variant trimming using [LeftAlignAndTrimVariants](https://gatk.broadinstitute.org/hc/en-us/articles/360037225872-LeftAlignAndTrimVariants)**
 
 ```
 singularity exec -B /mnt/scratch/SILENT/Act3/ -B /mnt/common/SILENT/Act3/ /mnt/common/SILENT/Act3/singularity/gatk4-4.2.0.sif \
