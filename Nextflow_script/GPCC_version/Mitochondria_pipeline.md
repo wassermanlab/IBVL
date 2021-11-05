@@ -53,34 +53,17 @@ From BioRXiv paper : Not mentionned
     
   For the IBVL pipeline, the ChrM mapped reads from an aligned BAM are converted back to fastq (losing the recalibrated base qualities and original alignment tags) and then mapped again the reference genome for the mitochondiral genome and the shifted version of the mitochondrial genome.
   
-**Future update in the IBVL pipeline** : Renove the RevertSam step and directly change to fastq the ${bam.simpleName}_chrM.bam
-  
-  **Revert the ChrM mapped reads from an aligned BAM to an unaligned BAM file using [RevertSam](https://gatk.broadinstitute.org/hc/en-us/articles/360036831851-RevertSam-Picard-)**
-  
-  ```
-singularity exec -B /mnt/scratch/SILENT/Act3/ -B /mnt/common/SILENT/Act3/ /mnt/common/SILENT/Act3/singularity/gatk4-4.2.0.sif \
-        gatk RevertSam \
- 	INPUT=${chr_bam.baseName}.bam \
- 	OUTPUT_BY_READGROUP=false \
- 	OUTPUT=${chr_bam.baseName}_RevertSam.bam \
- 	VALIDATION_STRINGENCY=LENIENT \
- 	ATTRIBUTE_TO_CLEAR=FT \
- 	ATTRIBUTE_TO_CLEAR=CO \
-  	SORT_ORDER=queryname \
- 	RESTORE_ORIGINAL_QUALITIES=false
-  
-	samtools index ${chr_bam.baseName}_RevertSam.bam
-```
 
 **Convert back the bam file to fastq using [SamToFastq](https://gatk.broadinstitute.org/hc/en-us/articles/360036485372-SamToFastq-Picard-)**
 
 ```
 singularity exec -B /mnt/scratch/SILENT/Act3/ -B /mnt/common/SILENT/Act3/ /mnt/common/SILENT/Act3/singularity/gatk4-4.2.0.sif \
         gatk SamToFastq \
-	INPUT=${revertSam_bam.baseName}.bam \
-	FASTQ=${revertSam_bam.baseName}.fastq \
+	INPUT=${chr_bam.baseName}.bam \
+	FASTQ=${chr_bam.baseName}.fastq \
 	INTERLEAVE=true \
 	NON_PF=true
+
  ```
  
 **Align Fastq to MT reference genome (also run using the shifted MT reference genome) using [bwa](http://bio-bwa.sourceforge.net/bwa.shtml) and [SamTools](http://www.htslib.org/doc/samtools-index.html)**
@@ -91,24 +74,37 @@ bwa mem -R "@RG\\tID:${fastqfromsam.baseName}\\tSM:${fastqfromsam.baseName}\\tPL
 samtools index ${fastqfromsam.baseName}_chrM.bam
  ```
  
-### Identify Duplicate Reads using [MarkDuplicates](https://gatk.broadinstitute.org/hc/en-us/articles/360036729891-MarkDuplicates-Picard-)
+### Identify Duplicate Reads using [MarkDuplicates](https://gatk.broadinstitute.org/hc/en-us/articles/360036729891-MarkDuplicates-Picard-) for both bam files mapped with the reference genome and the shifted reference genome
 
 From GATK best practices website : Tools involved: MarkDuplicates. This step identifies and tags duplicate reads in the aligned BAM files.
 
 From BioRXiv paper : Considered done for the nuclear genomes : Briefly, GATK version 4.1.2.0 (McKenna et al. 2010) tools were used to estimate the median nuclear genome coverage (Picard CollectWgsMetrics), to exclude duplicates (Picard MarkDuplicates)
 
-**Future update in the IBVL pipeline** : Include this step in the IBVL pipeline
+```
+singularity exec -B /mnt/scratch/SILENT/Act3/ -B /mnt/common/SILENT/Act3/ /mnt/common/SILENT/Act3/singularity/gatk4-4.2.0.sif \
+        gatk MarkDuplicates \
+      I=${bam/shifted_MT} \
+      O=${bam/shifted_MT.simpleName}_marked_duplicates.bam \
+      M=${bam/shifted_MT.simpleName}_marked_duplicates_metrics.txt
 
-### Collect coverage and performance metrics for BAM file using [CollectWgsMetrics](https://gatk.broadinstitute.org/hc/en-us/articles/360036804671-CollectWgsMetrics-Picard-)
+samtools index ${bam_MT.simpleName}_marked_duplicates.bam
+```
+
+### Collect coverage and performance metrics for BAM file using [CollectWgsMetrics](https://gatk.broadinstitute.org/hc/en-us/articles/360036804671-CollectWgsMetrics-Picard-) for both bam files mapped with the reference genome and the shifted reference genome
 
 From GATK best practices website : Tools involved: CollectWgsMetrics. This step collects several metrics for evaluating the coverage and performance of the WGS experiment. This includes the fraction of bases that pass base and mapping quality filters as well as coverage levels.
 
 From BioRXiv paper : Considered done for the nuclear genomes : Briefly, GATK version 4.1.2.0 (McKenna et al. 2010) tools were used to estimate the median nuclear genome coverage (Picard CollectWgsMetrics), to exclude duplicates (Picard MarkDuplicates)
 
-**Future update in the IBVL pipeline** : Include this step in the IBVL pipeline
-
+```
+singularity exec -B /mnt/common/DATABASES/REFERENCES/ -B /mnt/scratch/SILENT/Act3/ -B /mnt/common/SILENT/Act3/ /mnt/common/SILENT/Act3/singularity/gatk4-4.2.0.sif \
+        gatk CollectWgsMetrics \
+        -I ${bam/shifted_MT} \
+        -O ${bam/shifted_MT.simpleName}_collect_wgs_metrics_MT.txt \
+        -R ${ref_genome_MT/shifted_file}
+```
  
- ### Call MT variants in aligned BAM files using [Mutect2](https://gatk.broadinstitute.org/hc/en-us/articles/360051306691-Mutect2)
+ ### Call MT variants in aligned BAM files using [Mutect2](https://gatk.broadinstitute.org/hc/en-us/articles/360051306691-Mutect2) for both bam files mapped with the reference genome and the shifted reference genome
  
 This step is performed using the MT reeference genome and the shifted MT reference genome.
 
@@ -131,47 +127,8 @@ singularity exec -B /mnt/scratch/SILENT/Act3/ -B /mnt/common/SILENT/Act3/ /mnt/c
 	-O ${bam_MT.simpleName}_Mutect2.vcf.gz
   ```
   
-  ### Filter the calls (also run using the shifted MT reference genome)
+  ### LiftOver the variants called with the shifted reference 
   
-From GATK best practices website : Tools involved: FilterMutectCalls - This step filters the output VCF files based on specific parameters, such as a minimum allele fraction, maximum alternate allele count, and estimate of contamination. The --autosomal-coverage parameter specifically filters out potential NuMTs. Specifying the --mitochondrial-mode parameter automatically sets the filters to the mitochondrial defaults.
-
-From BioRXiv paper : Mutect2 variants were then filtered (GATK FilterMutectCalls --stats raw_vcf_stats --max-alt-allele-count 4 --mitochondria-mode --autosomal_coverage nDNA_MEDIAN_COV --min_allele_fraction 0.01)
-
-  **Future update in the IBVL pipeline** : Move this step after combining the variant calls from the control region with the non-control region
-  **Future update in the IBVL pipeline** : Add the --autosomal-coverage parameter
-  
- ```
-singularity exec -B /mnt/scratch/SILENT/Act3/ -B /mnt/common/SILENT/Act3/ /mnt/common/SILENT/Act3/singularity/gatk4-4.2.0.sif \
-	gatk FilterMutectCalls \
-	-V ${vcf_chrM.simpleName}.vcf.gz \
-	-R Homo_sapiens_assembly38.chrM.fasta \
-	--stats ${vcf_chrM.simpleName}.vcf.gz.stats \
-	--max-alt-allele-count 4 \
-	--mitochondria-mode \
-	-O ${vcf_chrM.simpleName}_filtered.vcf.gz
-  ```
-  
-  ### LeftAlignAndTrimVariants (also run using the shifted MT reference genome)
-  
-From GATK best practices website : Not mentionned
-
-From BioRXiv paper : Multi-allelic sites were split into different variants (LeftAlignAndTrimVariants --split-multi-allelics --dont-trim-alleles --keep-original-ac)
- 
- **Future update in the IBVL pipeline** : Move this step after combining the variant calls from the control region with the non-control region
-  
-  ```
-singularity exec -B /mnt/scratch/SILENT/Act3/ -B /mnt/common/SILENT/Act3/ /mnt/common/SILENT/Act3/singularity/gatk4-4.2.0.sif \
-	gatk LeftAlignAndTrimVariants \
-	-R Homo_sapiens_assembly38.chrM.fasta \
-	-V ${vcf_fiiltered_chrM.simpleName}.vcf.gz \
-	-O ${vcf_fiiltered_chrM.simpleName}_trimmed.vcf.gz \
-	--split-multi-allelics \
-	--dont-trim-alleles \
-	--keep-original-ac
- ```
- 
-### Combine the variant calls from the control region with the non-control region
-
 From GATK best practices website : 3 steps.
 
 1. Liftover the output VCF files. Tools involved: LiftoverVcf - This step returns the variant calls back to the standard numbering system with the original alignment (OA) tags.
@@ -179,53 +136,76 @@ From GATK best practices website : 3 steps.
 3. Merge stats files for output VCFs. Tools Involved: Mutect2- MergeMutectStats - This step merges the stats file for the variant calls of the control region with the stats file for the variant calls of the non-control region.
 
 From BioRXiv paper : Variants called on the shifted reference were mapped back to standard coordinates (Picard LiftOver) and combined with variants from the non-control region.
+  
+  ```
+singularity exec -B /mnt/common/DATABASES/REFERENCES/ -B /mnt/scratch/SILENT/Act3/ -B /mnt/common/SILENT/Act3/ /mnt/common/SILENT/Act3/singularity/gatk4-4.2.0.sif \
+        gatk LiftoverVcf \
+	I=${MT_call_variants_shifted} \
+	O=${MT_call_variants_shifted.simpleName}_lifted_over.vcf \
+	CHAIN=${ShiftBack_chain_MT_file} \
+	REJECT=${MT_call_variants_shifted.simpleName}_rejected_variants.vcf \
+	R=${ref_genome_MT_file}
+```
+  
+  
+  ### Combine the variant calls from the control region with the non-control region
+  
+  ```
+singularity exec -B /mnt/common/DATABASES/REFERENCES/ -B /mnt/scratch/SILENT/Act3/ -B /mnt/common/SILENT/Act3/ /mnt/common/SILENT/Act3/singularity/gatk4-4.2.0.sif \
+        gatk MergeVcfs \
+          I=${MT_call_variants} \
+          I=\${sample_name}_sorted_chrM_chrM_shifted_marked_duplicates_Mutect2_lifted_over.vcf \
+          O=\${sample_name}_merged.vcf.gz
+```
 
-Current IBVL proccess : 
+
+### Merge stats files for output VCFs
+
+```
+singularity exec -B /mnt/common/DATABASES/REFERENCES/ -B /mnt/scratch/SILENT/Act3/ -B /mnt/common/SILENT/Act3/ /mnt/common/SILENT/Act3/singularity/gatk4-4.2.0.sif \
+        gatk MergeMutectStats \
+        -stats ${MT_call_variants_stat} \
+        -stats \${sample_name}_sorted_chrM_chrM_shifted_marked_duplicates_Mutect2.vcf.gz.stats \
+        -O \${sample_name}_merged.stats
+```
  
-**Keep variants located in the non CR region**
+ ### Filter merged Mutect2 calls
+ 
+ From GATK best practices website : Tools involved: FilterMutectCalls - This step filters the output VCF files based on specific parameters, such as a minimum allele fraction, maximum alternate allele count, and estimate of contamination. The --autosomal-coverage parameter specifically filters out potential NuMTs. Specifying the --mitochondrial-mode parameter automatically sets the filters to the mitochondrial defaults.
+
+From BioRXiv paper : Mutect2 variants were then filtered (GATK FilterMutectCalls --stats raw_vcf_stats --max-alt-allele-count 4 --mitochondria-mode --autosomal_coverage nDNA_MEDIAN_COV --min_allele_fraction 0.01)
+
  
  ```
 singularity exec -B /mnt/scratch/SILENT/Act3/ -B /mnt/common/SILENT/Act3/ /mnt/common/SILENT/Act3/singularity/gatk4-4.2.0.sif \
-	gatk SelectVariants \
+	gatk FilterMutectCalls \
+	-V ${MT_MergeVcfs.simpleName}.vcf.gz \
 	-R Homo_sapiens_assembly38.chrM.fasta \
-	-V ${vcf_fiiltered_trimmed_chrM.simpleName}.vcf.gz \
-	-O ${vcf_fiiltered_trimmed_chrM.simpleName}_NonControlRegion.vcf.gz \
-	-L chrM:576-16024
- ```
- 
-**Keep variants located in the CR region**
- 
- ```
+	--stats ${MT_MergeVcfs.simpleName}.stats \
+	--max-alt-allele-count 4 \
+	--mitochondria-mode \
+	-O ${MT_MergeVcfs.simpleName}_filtered.vcf.gz
+```
+
+  **Future update in the IBVL pipeline** : Add the --autosomal-coverage parameter
+
+From GATK best practices website : Not mentionned
+
+From BioRXiv paper : Multi-allelic sites were split into different variants (LeftAlignAndTrimVariants --split-multi-allelics --dont-trim-alleles --keep-original-ac)
+
+```
 singularity exec -B /mnt/scratch/SILENT/Act3/ -B /mnt/common/SILENT/Act3/ /mnt/common/SILENT/Act3/singularity/gatk4-4.2.0.sif \
-	gatk SelectVariants \
-	-R Homo_sapiens_assembly38.chrM.shifted_by_8000_bases.fasta \
-	-V ${vcf_fiiltered_trimmed_shifted_chrM.simpleName}.vcf.gz \
-	-O ${vcf_fiiltered_trimmed_shifted_chrM.simpleName}_ControlRegion.vcf.gz \
-	-L chrM:7455-8576
-  ```
-  
-**Shift the variants back to the reference genome position**
-  
-  ```
-gzip -cd ${vcf_fiiltered_trimmed_CR_region_chrM.simpleName}_NoHeader.vcf.gz | awk ' \$2>=8001 {print \$1"\t"\$2-8000"\t"\$3"\t"\$4"\t"\$5"\t"\$6"\t"\$7"\t"\$8"\t"\$9"\t"\$10} \$2<=8000 {print \$1"\t"\$2+8569"\t"\$3"\t"\$4"\t"\$5"\t"\$6"\t"\$7"\t"\$8"\t"\$9"\t"\$10} ' | gzip -c  > ${vcf_fiiltered_trimmed_CR_region_chrM.simpleName}_NoHeader_ShiftedBack.vcf.gz
-
-cat \${sample_name}_sorted_chrM_RevertSam_chrM_Mutect2_filtered_trimmed_NonControlRegion.vcf.gz ${vcf_fiiltered_trimmed_CR_region_chrM.simpleName}_NoHeader_ShiftedBack.vcf.gz > ${vcf_fiiltered_trimmed_CR_region_chrM.simpleName}_merged1.vcf.gz
-
+	gatk LeftAlignAndTrimVariants \
+	-R Homo_sapiens_assembly38.chrM.fasta \
+	-V ${MT_Filter_Mutect_Calls.simpleName}.vcf.gz \
+	-O ${MT_Filter_Mutect_Calls.simpleName}_trimmed.vcf.gz \
+	--split-multi-allelics \
+	--dont-trim-alleles \
+	--keep-original-ac
 ```
-
-**Sort the variants and index the file**
-
-```
-bcftools sort ${vcf_fiiltered_trimmed_CR_region_chrM.simpleName}_merged1.vcf.gz -O z -o ${vcf_fiiltered_trimmed_CR_region_chrM.simpleName}_merged1_sorted.vcf.gz
-
-singularity exec -B /mnt/scratch/SILENT/Act3/ -B /mnt/common/SILENT/Act3/ /mnt/common/SILENT/Act3/singularity/gatk4-4.2.0.sif \
-        gatk IndexFeatureFile \
-        -I ${vcf_fiiltered_trimmed_CR_region_chrM.simpleName}_merged1_sorted.vcf.gz
-```
-
- **Future update in the IBVL pipeline** : Try using [LiftoverVcf](https://gatk.broadinstitute.org/hc/en-us/articles/360037060932-LiftoverVcf-Picard-)
- **Future update in the IBVL pipeline** : Move this part before the FilterMutectCalls and LeftAlignAndTrimVariants steps
- **Future update in the IBVL pipeline** : Add step to merge stats files for output VCFs - Tools Involved: Mutect2- MergeMutectStats This step merges the stats file for the variant calls of the control region with the stats file for the variant calls of the non-control region.
+ 
+ ### Filter out Blacklisted Sites
+ 
 **Future update in the IBVL pipeline** : Add filter out Blacklisted Sites - Tools involved: VariantFiltration. This step filters out blacklisted sites containing unwanted artifacts.
 
 
