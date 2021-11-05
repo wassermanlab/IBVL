@@ -437,6 +437,7 @@ params.ref_genome_MT_index="//mnt/common/SILENT/Act3/MT_references/Homo_sapiens_
 params.ref_genome_MT_shifted_index="//mnt/common/SILENT/Act3/MT_references/Homo_sapiens_assembly38.chrM.shifted_by_8000_bases.fasta.fai"
 params.ref_genome_MT_dict="//mnt/common/SILENT/Act3/MT_references/Homo_sapiens_assembly38.chrM.dict"
 params.ref_genome_MT_shifted_dict="//mnt/common/SILENT/Act3/MT_references/Homo_sapiens_assembly38.chrM.shifted_by_8000_bases.dict"
+params.ShiftBack_chain_MT="/mnt/common/SILENT/Act3/MT_references/ShiftBack.chain"
 
 ref_genome_MT_file = file(params.ref_genome_MT)
 ref_genome_MT_shifted_file = file(params.ref_genome_MT_shifted)
@@ -444,6 +445,7 @@ ref_genome_MT_file_index = file(params.ref_genome_MT_index)
 ref_genome_MT_shifted_file_index = file(params.ref_genome_MT_shifted_index)
 ref_genome_MT_file_dict = file(params.ref_genome_MT_dict)
 ref_genome_MT_shifted_file_dict = file(params.ref_genome_MT_shifted_dict)
+ShiftBack_chain_MT_file=file(params.ShiftBack_chain_MT)
 
 
 //
@@ -507,47 +509,15 @@ process Extract_MT_Read {
 	"""
 }
 
-process MT_Revert_Sam {
+
+process MT_SamtoFastq {
 	memory '4G'
 
 	input :
 	file(chr_bam) from Extract_MT_Read
 
 	output :
-	file '*_chrM_RevertSam.bam' into MT_Revert_Sam
-
-	script :
-	"""
-	module load singularity
-	ANNOTATEVARIANTS_INSTALL=/mnt/common/WASSERMAN_SOFTWARE/AnnotateVariants/
-	source \$ANNOTATEVARIANTS_INSTALL/opt/miniconda3/etc/profile.d/conda.sh
-	conda activate \$ANNOTATEVARIANTS_INSTALL/opt/AnnotateVariantsEnvironment
-
-	echo ${chr_bam.baseName} 
-
-        singularity exec -B /mnt/scratch/SILENT/Act3/ -B /mnt/common/SILENT/Act3/ /mnt/common/SILENT/Act3/singularity/gatk4-4.2.0.sif \
-        gatk RevertSam \
- 	INPUT=${chr_bam.baseName}.bam \
- 	OUTPUT_BY_READGROUP=false \
- 	OUTPUT=${chr_bam.baseName}_RevertSam.bam \
- 	VALIDATION_STRINGENCY=LENIENT \
- 	ATTRIBUTE_TO_CLEAR=FT \
- 	ATTRIBUTE_TO_CLEAR=CO \
-  	SORT_ORDER=queryname \
- 	RESTORE_ORIGINAL_QUALITIES=false
-
-	samtools index ${chr_bam.baseName}_RevertSam.bam
-	"""
-}
-
-process MT_SamtoFastq {
-	memory '4G'
-
-	input :
-	file(revertSam_bam) from MT_Revert_Sam
-
-	output :
-	file '*_chrM_RevertSam.fastq' into MT_SamtoFastq
+	file '*.fastq' into MT_SamtoFastq
 
 	script :
 	"""
@@ -555,8 +525,8 @@ process MT_SamtoFastq {
 
 	singularity exec -B /mnt/scratch/SILENT/Act3/ -B /mnt/common/SILENT/Act3/ /mnt/common/SILENT/Act3/singularity/gatk4-4.2.0.sif \
         gatk SamToFastq \
-	INPUT=${revertSam_bam.baseName}.bam \
-	FASTQ=${revertSam_bam.baseName}.fastq \
+	INPUT=${chr_bam.baseName}.bam \
+	FASTQ=${chr_bam.baseName}.fastq \
 	INTERLEAVE=true \
 	NON_PF=true
 	"""
@@ -566,6 +536,7 @@ MT_SamtoFastq.into {
   MT_SamtoFastq1
   MT_SamtoFastq2
 }
+
 
 //
 //Step MT 3. Align the reads against the ref genome and the shifted ref genome//
@@ -618,6 +589,145 @@ process align_to_shifted_MT {
 	"""
 }
 
+align_to_MT_bam.into{
+	align_to_MT_bam1
+	align_to_MT_bam2
+}
+
+align_to_MT_bai.into{
+	align_to_MT_bai1
+	align_to_MT_bai2
+}
+
+align_to_shifted_MT_bam.into{
+	align_to_shifted_MT_bam1
+	align_to_shifted_MT_bam2
+}
+
+align_to_shifted_MT_bai.into{
+	align_to_shifted_MT_bai1
+	align_to_shifted_MT_bai2
+}
+
+
+//
+//Step MT. Identify Duplicate Reads using MarkDuplicates
+//
+
+process MarkDuplicates {
+        memory '4G'
+
+        input :
+        file(bam_MT) from align_to_MT_bam1
+        file(bai_MT) from align_to_MT_bai1
+
+        output :
+        file '*marked_duplicates.bam' into MarkDuplicates_MT_bam
+        file '*marked_duplicates.bam.bai' into MarkDuplicates_MT_bai
+
+        script:
+        """
+        module load singularity
+
+        singularity exec -B /mnt/scratch/SILENT/Act3/ -B /mnt/common/SILENT/Act3/ /mnt/common/SILENT/Act3/singularity/gatk4-4.2.0.sif \
+        gatk MarkDuplicates \
+      I=${bam_MT} \
+      O=${bam_MT.simpleName}_marked_duplicates.bam \
+      M=${bam_MT.simpleName}_marked_duplicates_metrics.txt
+
+        ANNOTATEVARIANTS_INSTALL=/mnt/common/WASSERMAN_SOFTWARE/AnnotateVariants/
+        source \$ANNOTATEVARIANTS_INSTALL/opt/miniconda3/etc/profile.d/conda.sh
+        conda activate \$ANNOTATEVARIANTS_INSTALL/opt/AnnotateVariantsEnvironment
+
+        samtools index ${bam_MT.simpleName}_marked_duplicates.bam
+        """
+}
+
+
+process MarkDuplicates_shifted {
+        memory '4G'
+
+        input :
+        file(bam_shifted_MT) from align_to_shifted_MT_bam1
+        file(bai_shifted_MT) from align_to_shifted_MT_bai1
+
+        output :
+        file '*marked_duplicates.bam' into MarkDuplicates_shifted_MT_bam
+        file '*marked_duplicates.bam.bai' into MarkDuplicates_shifted_MT_bai
+
+        script:
+        """
+        module load singularity
+
+        singularity exec -B /mnt/scratch/SILENT/Act3/ -B /mnt/common/SILENT/Act3/ /mnt/common/SILENT/Act3/singularity/gatk4-4.2.0.sif \
+        gatk MarkDuplicates \
+      I=${bam_shifted_MT} \
+      O=${bam_shifted_MT.simpleName}_marked_duplicates.bam \
+      M=${bam_shifted_MT.simpleName}_marked_duplicates_metrics.txt
+
+        ANNOTATEVARIANTS_INSTALL=/mnt/common/WASSERMAN_SOFTWARE/AnnotateVariants/
+        source \$ANNOTATEVARIANTS_INSTALL/opt/miniconda3/etc/profile.d/conda.sh
+        conda activate \$ANNOTATEVARIANTS_INSTALL/opt/AnnotateVariantsEnvironment
+
+        samtools index ${bam_shifted_MT.simpleName}_marked_duplicates.bam
+        """
+}
+
+//
+//Step MT. Collect coverage and performance metrics for BAM file using CollectWgsMetrics
+//
+
+
+process Picard_CollectWgsMetrics_MT {
+        cpus 8
+        publishDir "$params.outdir_ind/${version}/QC/Picard_CollectWgsMetrics/", mode: 'copy'
+
+        input :
+	file ref_genome_MT_file
+        file(bam_MT) from align_to_MT_bam2
+        file(bai_MT) from align_to_MT_bai2
+        val version from params.version
+
+        output :
+        file '*_collect_wgs_metrics_MT.txt' into Picard_CollectWgsMetrics_MT
+
+        script :
+        """
+        module load singularity
+
+        singularity exec -B /mnt/common/DATABASES/REFERENCES/ -B /mnt/scratch/SILENT/Act3/ -B /mnt/common/SILENT/Act3/ /mnt/common/SILENT/Act3/singularity/gatk4-4.2.0.sif \
+        gatk    CollectWgsMetrics \
+        -I ${bam_MT} \
+        -O ${bam_MT.simpleName}_collect_wgs_metrics_MT.txt \
+        -R ${ref_genome_MT_file}
+        """
+}
+
+process Picard_CollectWgsMetrics_shifted_MT {
+        cpus 8
+        publishDir "$params.outdir_ind/${version}/QC/Picard_CollectWgsMetrics/", mode: 'copy'
+
+        input :
+        file ref_genome_MT_shifted_file
+	file(bam_shifted_MT) from align_to_shifted_MT_bam2
+        file(bai_shifted_MT) from align_to_shifted_MT_bai2
+        val version from params.version
+
+        output :
+        file '*_collect_wgs_metrics_MT.txt' into Picard_CollectWgsMetrics_shifted_MT
+
+        script :
+        """
+        module load singularity
+
+        singularity exec -B /mnt/common/DATABASES/REFERENCES/ -B /mnt/scratch/SILENT/Act3/ -B /mnt/common/SILENT/Act3/ /mnt/common/SILENT/Act3/singularity/gatk4-4.2.0.sif \
+        gatk    CollectWgsMetrics \
+        -I ${bam_shifted_MT} \
+        -O ${bam_shifted_MT.simpleName}_collect_wgs_metrics_MT.txt \
+        -R ${ref_genome_MT_shifted_file}
+        """
+}
+
 //
 //Step MT 4. Call the variants against the ref genome and the shifted ref genome
 //
@@ -630,12 +740,13 @@ process MT_call_variants {
 	file ref_genome_MT_file_index
 	file ref_genome_MT_file_dict
 	path ref_genome_MT_file from MT_Index_Reference3
-	file(bam_MT) from align_to_MT_bam
-	file(bai_MT) from align_to_MT_bai
+	file(MarkDuplicates_bam_MT) from MarkDuplicates_MT_bam
+	file(MarkDuplicates_bai_MT) from MarkDuplicates_MT_bai
 
 	output :
 	file '*_Mutect2.vcf.gz' into MT_call_variants
-	file '*_Mutect2.vcf.gz.*' into MT_call_variants_index
+	file '*_Mutect2.vcf.gz.tbi' into MT_call_variants_index
+	file '*.vcf.gz.stats' into MT_call_variants_stat
 
 	script:
 	"""
@@ -644,15 +755,16 @@ process MT_call_variants {
 	singularity exec -B /mnt/scratch/SILENT/Act3/ -B /mnt/common/SILENT/Act3/ /mnt/common/SILENT/Act3/singularity/gatk4-4.2.0.sif \
 	gatk Mutect2 \
 	-R Homo_sapiens_assembly38.chrM.fasta \
-	-I ${bam_MT.simpleName}.bam \
+	-I ${MarkDuplicates_bam_MT.simpleName}.bam \
 	-L chrM \
 	--mitochondria-mode \
 	--annotation StrandBiasBySample \
 	--max-reads-per-alignment-start 75 \
 	--max-mnp-distance 0 \
-	-O ${bam_MT.simpleName}_Mutect2.vcf.gz
+	-O ${MarkDuplicates_bam_MT.simpleName}_Mutect2.vcf.gz
 	"""
 }
+
 
 process MT_call_variants_shifted {
 	memory '4G'
@@ -662,33 +774,137 @@ process MT_call_variants_shifted {
 	file ref_genome_MT_shifted_file_index
 	file ref_genome_MT_shifted_file_dict
 	path ref_genome_MT_shifted_file from MT_Index_Reference4
-	file(shifted_MT_bam) from align_to_shifted_MT_bam
-	file(shifted_MT_bai) from align_to_shifted_MT_bai
+	file(MarkDuplicates_shifted_MT_bam) from MarkDuplicates_shifted_MT_bam
+	file(MarkDuplicates_shifted_MT_bai) from MarkDuplicates_shifted_MT_bai
 	
 	output :
 	file '*_Mutect2.vcf.gz' into MT_call_variants_shifted
-	file '*_Mutect2.vcf.gz.*' into MT_call_variants_shifted_index
+	file '*_Mutect2.vcf.gz.tbi' into MT_call_variants_shifted_index
+	file '*.vcf.gz.stats' into MT_call_variants_shifted_stat
 
-	script:
+	script:	
 	"""
 	module load singularity
 
-	echo ${shifted_MT_bam.simpleName}
 	singularity exec -B /mnt/scratch/SILENT/Act3/ -B /mnt/common/SILENT/Act3/ /mnt/common/SILENT/Act3/singularity/gatk4-4.2.0.sif \
         gatk Mutect2 \
 	-R Homo_sapiens_assembly38.chrM.shifted_by_8000_bases.fasta \
-	-I ${shifted_MT_bam.simpleName}.bam \
+	-I ${MarkDuplicates_shifted_MT_bam.simpleName}.bam \
 	-L chrM \
 	--mitochondria-mode \
 	--annotation StrandBiasBySample \
 	--max-reads-per-alignment-start 75 \
 	--max-mnp-distance 0 \
-	-O ${shifted_MT_bam.simpleName}_Mutect2.vcf.gz
+	-O ${MarkDuplicates_shifted_MT_bam.simpleName}_Mutect2.vcf.gz
 	"""
 }
 
+
 //
-//Step MT 5. Filter Mutect2 calls against the ref genome and the shifted ref genome (Could do the merging before in the future to filter only one file)
+// Liftover the output VCF files
+//
+
+
+process MT_Liftover {
+        memory '4G'
+
+	input :
+        file (MT_call_variants_shifted) from MT_call_variants_shifted
+	file MT_call_variants_shifted_index
+        file ref_genome_MT_file
+        file ref_genome_MT_file_index
+        file ref_genome_MT_file_dict
+	file ShiftBack_chain_MT_file
+
+        output :
+        file '*_lifted_over.vcf' into MT_Liftover
+
+        script :
+        """
+	echo ${MT_call_variants_shifted.simpleName}
+	
+	module load singularity
+
+        singularity exec -B /mnt/common/DATABASES/REFERENCES/ -B /mnt/scratch/SILENT/Act3/ -B /mnt/common/SILENT/Act3/ /mnt/common/SILENT/Act3/singularity/gatk4-4.2.0.sif \
+        gatk LiftoverVcf \
+	I=${MT_call_variants_shifted} \
+	O=${MT_call_variants_shifted.simpleName}_lifted_over.vcf \
+	CHAIN=${ShiftBack_chain_MT_file} \
+	REJECT=${MT_call_variants_shifted.simpleName}_rejected_variants.vcf \
+	R=${ref_genome_MT_file}
+	"""
+}
+
+
+//
+// Combine the variant calls from the control region with the non-control region
+//
+
+process MT_MergeVcfs {
+        memory '4G'
+
+        input :
+        file (MT_Liftover) from MT_Liftover.collect()
+	file MT_call_variants
+        val version from params.version
+        path outdir_ind from params.outdir_ind
+
+        output :
+        file '*_merged.vcf.gz' into MT_MergeVcfs
+        file '*_merged.vcf.gz.tbi' into MT_MergeVcfs_index
+
+        script :
+        """
+        echo ${MT_call_variants.simpleName}
+	sample_name=\$(echo ${MT_call_variants.simpleName} | cut -d _ -f 1)
+	echo \$sample_name
+
+        module load singularity
+
+        singularity exec -B /mnt/common/DATABASES/REFERENCES/ -B /mnt/scratch/SILENT/Act3/ -B /mnt/common/SILENT/Act3/ /mnt/common/SILENT/Act3/singularity/gatk4-4.2.0.sif \
+        gatk MergeVcfs \
+          I=${MT_call_variants} \
+          I=\${sample_name}_sorted_chrM_chrM_shifted_marked_duplicates_Mutect2_lifted_over.vcf \
+          O=\${sample_name}_merged.vcf.gz
+	"""
+}
+
+
+//
+// Merge stats files for output VCFs
+//
+
+process MT_Merge_stat_file {
+        memory '4G'
+
+        input :
+        file (MT_call_variants_stat) from MT_call_variants_stat
+	file (MT_call_variants_shifted_stat) from MT_call_variants_shifted_stat.collect()
+
+        output :
+        file '*' into MT_Merge_stat_file
+
+        script :
+        """
+        echo ${MT_call_variants_stat.simpleName}
+        sample_name=\$(echo ${MT_call_variants_stat.simpleName} | cut -d _ -f 1)
+        echo \$sample_name
+
+
+        module load singularity
+
+        singularity exec -B /mnt/common/DATABASES/REFERENCES/ -B /mnt/scratch/SILENT/Act3/ -B /mnt/common/SILENT/Act3/ /mnt/common/SILENT/Act3/singularity/gatk4-4.2.0.sif \
+        gatk MergeMutectStats \
+        -stats ${MT_call_variants_stat} \
+        -stats \${sample_name}_sorted_chrM_chrM_shifted_marked_duplicates_Mutect2.vcf.gz.stats \
+        -O \${sample_name}_merged.stats
+
+	"""
+}
+
+
+//
+//Step MT 5. Filter merged Mutect2 calls
 //
 
 
@@ -699,69 +915,45 @@ process MT_Filter_Mutect_Calls {
 	file ref_genome_MT_file
 	file ref_genome_MT_file_index
 	file ref_genome_MT_file_dict
-	file vcf_chrM from MT_call_variants
-	file vcf_chrM_index from MT_call_variants_index
+	file (MT_MergeVcfs) from MT_MergeVcfs
+	file (MT_MergeVcfs_index) from MT_MergeVcfs_index
+	file (MT_MergeVcfs_stat) from MT_Merge_stat_file.collect()
 
 	output :
 	file '*_filtered.vcf.gz' into MT_Filter_Mutect_Calls
-	file '*_filtered.vcf.gz.*' into MT_Filter_Mutect_Calls_index
+	file '*_filtered.vcf.gz.tbi' into MT_Filter_Mutect_Calls_index
 
 	script :
 	"""
 	module load singularity
 
-	echo ${vcf_chrM.simpleName}
+	echo ${MT_MergeVcfs.simpleName}
 
 	singularity exec -B /mnt/scratch/SILENT/Act3/ -B /mnt/common/SILENT/Act3/ /mnt/common/SILENT/Act3/singularity/gatk4-4.2.0.sif \
 	gatk FilterMutectCalls \
-	-V ${vcf_chrM.simpleName}.vcf.gz \
+	-V ${MT_MergeVcfs.simpleName}.vcf.gz \
 	-R Homo_sapiens_assembly38.chrM.fasta \
-	--stats ${vcf_chrM.simpleName}.vcf.gz.stats \
+	--stats ${MT_MergeVcfs.simpleName}.stats \
 	--max-alt-allele-count 4 \
 	--mitochondria-mode \
-	-O ${vcf_chrM.simpleName}_filtered.vcf.gz
+	-O ${MT_MergeVcfs.simpleName}_filtered.vcf.gz
 	"""
 }
 
-process MT_shifted_Filter_Mutect_Calls {
-	memory '4G'
-
-	input :
-	file ref_genome_MT_shifted_file
-	file ref_genome_MT_shifted_file_index
-	file ref_genome_MT_shifted_file_dict
-	file vcf_chrM_shifted from MT_call_variants_shifted
-	file vcf_chrM_shifted_index from MT_call_variants_shifted_index
-
-	output :
-	file '*_filtered.vcf.gz' into MT_shifted_Filter_Mutect_Calls
-	file '*_filtered.vcf.gz.*' into MT_shifted_Filter_Mutect_Calls_index
-
-	script :
-	"""
-	module load singularity
-
-	echo ${vcf_chrM_shifted.simpleName}
-	singularity exec -B /mnt/scratch/SILENT/Act3/ -B /mnt/common/SILENT/Act3/ /mnt/common/SILENT/Act3/singularity/gatk4-4.2.0.sif \
-	gatk FilterMutectCalls \
-	-V ${vcf_chrM_shifted.simpleName}.vcf.gz \
-	-R Homo_sapiens_assembly38.chrM.shifted_by_8000_bases.fasta \
-	--stats ${vcf_chrM_shifted.simpleName}.vcf.gz.stats \
-	--max-alt-allele-count 4 \
-	--mitochondria-mode \
-	-O ${vcf_chrM_shifted.simpleName}_filtered.vcf.gz
-	"""
-}
 
 process MT_LeftAlignAndTrimVariants {
 	memory '4G'
+
+        publishDir "$params.outdir_ind/${version}/Mutect2/", mode: 'copy'
 
 	input :
 	file ref_genome_MT_file
 	file ref_genome_MT_file_index
 	file ref_genome_MT_file_dict
-	file vcf_fiiltered_chrM from MT_Filter_Mutect_Calls
-	file vcf_fiiltered_chrM_index from MT_Filter_Mutect_Calls_index
+	file (MT_Filter_Mutect_Calls) from MT_Filter_Mutect_Calls
+	file (MT_Filter_Mutect_Calls_index) from MT_Filter_Mutect_Calls_index
+        val version from params.version
+        path outdir_ind from params.outdir_ind
 
 	output :
 	file '*_trimmed.vcf.gz' into MT_LeftAlignAndTrimVariants
@@ -771,42 +963,13 @@ process MT_LeftAlignAndTrimVariants {
 	"""
 	module load singularity
 
-	echo ${vcf_fiiltered_chrM.simpleName}
+	echo ${MT_Filter_Mutect_Calls.simpleName}
+
 	singularity exec -B /mnt/scratch/SILENT/Act3/ -B /mnt/common/SILENT/Act3/ /mnt/common/SILENT/Act3/singularity/gatk4-4.2.0.sif \
 	gatk LeftAlignAndTrimVariants \
 	-R Homo_sapiens_assembly38.chrM.fasta \
-	-V ${vcf_fiiltered_chrM.simpleName}.vcf.gz \
-	-O ${vcf_fiiltered_chrM.simpleName}_trimmed.vcf.gz \
-	--split-multi-allelics \
-	--dont-trim-alleles \
-	--keep-original-ac
-	"""
-}
-
-process MT_LeftAlignAndTrimVariants_shifted {
-	memory '4G'
-
-	input :
-	file ref_genome_MT_shifted_file
-	file ref_genome_MT_shifted_file_index
-	file ref_genome_MT_shifted_file_dict
-	file vcf_fiiltered_chrM_shifted from MT_shifted_Filter_Mutect_Calls
-	file vcf_fiiltered_chrM_shifted_index from MT_shifted_Filter_Mutect_Calls_index
-
-	output :
-	file '*_trimmed.vcf.gz' into MT_LeftAlignAndTrimVariants_shifted
-	file '*_trimmed.vcf.gz.*' into MT_LeftAlignAndTrimVariants_shifted_index
-	
-	script :
-	"""
-	module load singularity
-
-	echo ${vcf_fiiltered_chrM_shifted.simpleName}
-	singularity exec -B /mnt/scratch/SILENT/Act3/ -B /mnt/common/SILENT/Act3/ /mnt/common/SILENT/Act3/singularity/gatk4-4.2.0.sif \
-	gatk LeftAlignAndTrimVariants \
-	-R Homo_sapiens_assembly38.chrM.shifted_by_8000_bases.fasta \
-	-V ${vcf_fiiltered_chrM_shifted.simpleName}.vcf.gz \
-	-O ${vcf_fiiltered_chrM_shifted.simpleName}_trimmed.vcf.gz \
+	-V ${MT_Filter_Mutect_Calls.simpleName}.vcf.gz \
+	-O ${MT_Filter_Mutect_Calls.simpleName}_trimmed.vcf.gz \
 	--split-multi-allelics \
 	--dont-trim-alleles \
 	--keep-original-ac
@@ -814,116 +977,8 @@ process MT_LeftAlignAndTrimVariants_shifted {
 }
 
 //
-//Keep variants in the non-control region
+// Filter out Blacklisted Sites
 //
-
-process MT_keep_nonCR_variants {
-	memory '4G'
-
-	input :
-	file ref_genome_MT_file
-	file ref_genome_MT_file_index
-	file ref_genome_MT_file_dict
-	file vcf_fiiltered_trimmed_chrM from MT_LeftAlignAndTrimVariants
-	file vcf_fiiltered_trimmed_chrM_index from MT_LeftAlignAndTrimVariants_index
-
-	output :
-	file '*_NonControlRegion.vcf.gz' into MT_keep_nonCR_variants
-
-	script :
-	"""	
-	module load singularity
-
-	echo ${vcf_fiiltered_trimmed_chrM.simpleName}
-        singularity exec -B /mnt/scratch/SILENT/Act3/ -B /mnt/common/SILENT/Act3/ /mnt/common/SILENT/Act3/singularity/gatk4-4.2.0.sif \
-	gatk SelectVariants \
-	-R Homo_sapiens_assembly38.chrM.fasta \
-	-V ${vcf_fiiltered_trimmed_chrM.simpleName}.vcf.gz \
-	-O ${vcf_fiiltered_trimmed_chrM.simpleName}_NonControlRegion.vcf.gz \
-	-L chrM:576-16024
-	"""
-}
-
-//
-//Keep variants in the control region
-//
-
-process MT_keep_CR_variants {
-	memory '4G'
-
-	input :
-	file ref_genome_MT_shifted_file
-	file ref_genome_MT_shifted_file_index
-	file ref_genome_MT_shifted_file_dict
-	file vcf_fiiltered_trimmed_shifted_chrM from MT_LeftAlignAndTrimVariants_shifted
-	file vcf_fiiltered_trimmed_shifted_chrM_index from MT_LeftAlignAndTrimVariants_shifted_index
-
-
-	output :
-	file '*_ControlRegion.vcf.gz' into MT_keep_CR_variants
-
-	script :
-	"""
-	module load singularity
-
-	echo ${vcf_fiiltered_trimmed_shifted_chrM.simpleName}
-        singularity exec -B /mnt/scratch/SILENT/Act3/ -B /mnt/common/SILENT/Act3/ /mnt/common/SILENT/Act3/singularity/gatk4-4.2.0.sif \
-	gatk SelectVariants \
-	-R Homo_sapiens_assembly38.chrM.shifted_by_8000_bases.fasta \
-	-V ${vcf_fiiltered_trimmed_shifted_chrM.simpleName}.vcf.gz \
-	-O ${vcf_fiiltered_trimmed_shifted_chrM.simpleName}_ControlRegion.vcf.gz \
-	-L chrM:7455-8576
-	"""
-}
-
-//
-// Shift again the variants to have their real position
-// Add the shifted back variants to the previous list of variants
-// Sort the variants
-// Index the vcf.gz files
-//
-
-process MT_shift_variants {
-	memory '4G'
-
-	input :
-	file vcf_fiiltered_trimmed_CR_region_chrM from MT_keep_CR_variants
-	file vcf_fiiltered_trimmed_nonCR_region_chrM from MT_keep_nonCR_variants.collect()
-	val version from params.version
-	path outdir_ind from params.outdir_ind
-
-	output :
-	file '*_merged1_sorted.vcf.gz*' into MT_shift_variants
-
-	publishDir "$params.outdir_ind/${version}/Mutect2/", glob :'*_chrM_Mutect2_filtered_trimmed_sorted.vcf.gz*', mode: 'copy'
-
-	script :
-	"""
-	ANNOTATEVARIANTS_INSTALL=/mnt/common/WASSERMAN_SOFTWARE/AnnotateVariants/
-        source \$ANNOTATEVARIANTS_INSTALL/opt/miniconda3/etc/profile.d/conda.sh
-        conda activate \$ANNOTATEVARIANTS_INSTALL/opt/AnnotateVariantsEnvironment
-
-	echo ${vcf_fiiltered_trimmed_CR_region_chrM.simpleName}
-	sample_name=\$(echo ${vcf_fiiltered_trimmed_CR_region_chrM.simpleName} | cut -d _ -f 1)
-	echo \$sample_name
-	gzip -cd ${vcf_fiiltered_trimmed_CR_region_chrM.simpleName}.vcf.gz | sed '/^#/d'  | gzip -c > ${vcf_fiiltered_trimmed_CR_region_chrM.simpleName}_NoHeader.vcf.gz
-
-	gzip -cd ${vcf_fiiltered_trimmed_CR_region_chrM.simpleName}.vcf.gz | grep ^# | gzip -c  > ${vcf_fiiltered_trimmed_CR_region_chrM.simpleName}_Header.vcf.gz
-
-	gzip -cd ${vcf_fiiltered_trimmed_CR_region_chrM.simpleName}_NoHeader.vcf.gz | awk ' \$2>=8001 {print \$1"\t"\$2-8000"\t"\$3"\t"\$4"\t"\$5"\t"\$6"\t"\$7"\t"\$8"\t"\$9"\t"\$10} \$2<=8000 {print \$1"\t"\$2+8569"\t"\$3"\t"\$4"\t"\$5"\t"\$6"\t"\$7"\t"\$8"\t"\$9"\t"\$10} ' | gzip -c  > ${vcf_fiiltered_trimmed_CR_region_chrM.simpleName}_NoHeader_ShiftedBack.vcf.gz
-	
-	cat \${sample_name}_sorted_chrM_RevertSam_chrM_Mutect2_filtered_trimmed_NonControlRegion.vcf.gz ${vcf_fiiltered_trimmed_CR_region_chrM.simpleName}_NoHeader_ShiftedBack.vcf.gz > ${vcf_fiiltered_trimmed_CR_region_chrM.simpleName}_merged1.vcf.gz
-
-	bcftools sort ${vcf_fiiltered_trimmed_CR_region_chrM.simpleName}_merged1.vcf.gz -O z -o ${vcf_fiiltered_trimmed_CR_region_chrM.simpleName}_merged1_sorted.vcf.gz
-	
-	module load singularity
-
-         singularity exec -B /mnt/scratch/SILENT/Act3/ -B /mnt/common/SILENT/Act3/ /mnt/common/SILENT/Act3/singularity/gatk4-4.2.0.sif \
-        gatk IndexFeatureFile \
-        -I ${vcf_fiiltered_trimmed_CR_region_chrM.simpleName}_merged1_sorted.vcf.gz
-	"""
-}
-
 
 //
 //Merge the samples
@@ -933,7 +988,7 @@ process MT_shift_variants {
 
 process MT_vcfs_txt {
 	input :
-	file '*_merged1_sorted.vcf.gz' from MT_shift_variants.collect()
+	file (MT_LeftAlignAndTrimVariants) from MT_LeftAlignAndTrimVariants.collect()
 	val version from params.version
 	path outdir_ind from params.outdir_ind
 	path outdir_pop from params.outdir_pop
@@ -945,7 +1000,7 @@ process MT_vcfs_txt {
 
 	script:
 	"""
-	find $params.outdir_ind/${version}/Mutect2/ -name "*_merged1_sorted.vcf.gz" > MT_vcfs.txt
+	find $params.outdir_ind/${version}/Mutect2/ -name "*_trimmed.vcf.gz" > MT_vcfs.txt
 	"""
 }
 
@@ -1108,7 +1163,7 @@ process annotation_table {
         """
 	ANNOTATEVARIANTS_INSTALL=/mnt/common/WASSERMAN_SOFTWARE/AnnotateVariants/
         source \$ANNOTATEVARIANTS_INSTALL/opt/miniconda3/etc/profile.d/conda.sh
-        conda activate \$ANNOTATEVARIANTS_INSTALL/opt/AnnotateVariantsEnvironment
+       conda activate \$ANNOTATEVARIANTS_INSTALL/opt/AnnotateVariantsEnvironment
 
         echo ${vcf_file_MT}
         echo ${vcf_file_MT.simpleName}
@@ -1209,7 +1264,7 @@ process MT_frequency_table {
         script :
         """
          echo ${MT_vcf}
-         echo ${MT_vcf.simpleName}
+        echo ${MT_vcf.simpleName}
 
 	module load singularity
 
@@ -1222,7 +1277,7 @@ process MT_frequency_table {
         -F POS \
         -F TYPE\
         -F ID \
-        -F REF \
+       -F REF \
         -F ALT \
         -F QUAL \
         -F FILTER \
@@ -1268,3 +1323,6 @@ process multiqc_pop {
         multiqc $params.outdir_pop/${version}/QC/
         """
 }
+
+
+
