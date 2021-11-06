@@ -25,8 +25,6 @@ samtools index ${sampleId}_sorted.bam
   
   -S The -S indicates the input is in SAM format and the "b" indicates that you'd like BAM output.
   Ignored for compatibility with previous samtools versions. Previously this option was required if input was in SAM format, but now the correct format is automatically detected by examining the first few characters of input.
-  --> Try to remove it and compare outputs.
-  
   
   ## SNV calling
   
