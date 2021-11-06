@@ -45,6 +45,8 @@ singularity exec -B /mnt/scratch/SILENT/Act3/ -B /mnt/common/SILENT/Act3/ -B /mn
 	--output_vcf=${bam.simpleName}.vcf.gz
 ```
   
+  **Remove the --regions chr20 tag when runninig the final dry run**
+  
    ### [GLnexus](https://github.com/dnanexus-rnd/GLnexus)
   
   GLnexus is advised for joint calling following calling with DeepVariant
