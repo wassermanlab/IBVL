@@ -4,6 +4,27 @@ This readme is for everyone to comment on things to add / modify in the script
 
 This Readme concerns the alignement and SNV part of the pipeline. Some parts are common with the MT and the SV pipeline.
  
+ **GRCh37 and GRCh38**
+ 
+ The first release of the IBVL will be done based on GRCh37, however, it is the team wishes to also made a release available in GRCh38 quickly after.
+ 
+ Changing the assembly requires to change the reference genome for alignment, as well as the VEP cache for annotation.
+ 
+ The user should comment out with '\\' the version they do not want the pipeline to use
+ 
+ ```
+ // For GRCh38 - Get the genome files
+//params.ref_genome="/mnt/common/DATABASES/REFERENCES/GRCh38/GENOME/1000G/GRCh38_full_analysis_set_plus_decoy_hl
+a.fa"
+//params.vep_cache="/mnt/common/DATABASES/REFERENCES/GRCh38/VEP/"
+
+// For GRCh37 - Get the genome files
+params.ref_genome="/mnt/common/DATABASES/REFERENCES/GRCh37/GENOME/GRCh37-lite.fa"
+params.vep_cache="/mnt/common/DATABASES/REFERENCES/GRCh37/VEP/"
+
+ref_genome_file = file(params.ref_genome)
+vep_cache=file(params.vep_cache)
+```
  
  ## Alignment (Fastq --> Bam)
   
