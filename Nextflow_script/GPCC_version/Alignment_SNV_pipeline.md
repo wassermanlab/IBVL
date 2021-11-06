@@ -29,7 +29,7 @@ vep_cache=file(params.vep_cache)
  ## Alignment (Fastq --> Bam)
   
 ```
-bwa mem -t 8 -R '@RG\\tID:${sampleId}\\tSM:${sampleId}' ${ref_genome_cvmfs_file} ${reads} | samtools view -Sb | samtools sort -o ${sampleId}_sorted.bam`
+bwa mem -t 8 -R '@RG\\tID:${sampleId}\\tSM:${sampleId}' ${ref_genome_file} ${reads} | samtools view -Sb | samtools sort -o ${sampleId}_sorted.bam`
 samtools index ${sampleId}_sorted.bam
 ```
   
@@ -56,7 +56,7 @@ samtools index ${sampleId}_sorted.bam
   [DeepVariant flags](https://cloud.google.com/life-sciences/docs/tutorials/deepvariant)
 	
 ```
-singularity exec -B /mnt/scratch/SILENT/Act3/ -B /mnt/common/SILENT/Act3/ -B /mnt/common/DATABASES/REFERENCES/GRCh38/GENOME/1000G/ /mnt/common/SILENT/Act3/singularity/deepvariant-1.2.0.sif \
+singularity exec -B /mnt/scratch/SILENT/Act3/ -B /mnt/common/SILENT/Act3/ -B /mnt/common/DATABASES/REFERENCES/ /mnt/common/SILENT/Act3/singularity/deepvariant-1.2.0.sif \
 	/opt/deepvariant/bin/run_deepvariant \
 	--model_type=WGS \
 	--ref=${ref_genome_file} \
