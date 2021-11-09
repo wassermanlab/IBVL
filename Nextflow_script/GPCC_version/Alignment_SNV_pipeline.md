@@ -27,6 +27,14 @@ ref_genome_file = file(params.ref_genome)
 vep_cache=file(params.vep_cache)
 ```
  
+ **Future IBVL update:** The user should define which assembly they want to use at the top, and it would automatically select the ppropriate reference genome, VEP cache and chromosomal writting. If something different than 'GRCh37' or 'GRCh38' is selected, then error message.
+ 
+ ```
+ // User must define the assembly they wish to use
+ // GRCh37 or GRCh38
+ Assembly=GRCh37
+ ```
+ 
  ## Alignment (Fastq --> Bam)
   
 ```
