@@ -27,12 +27,23 @@ ref_genome_file = file(params.ref_genome)
 vep_cache=file(params.vep_cache)
 ```
  
- **Future IBVL update:** The user should define which assembly they want to use at the top, and it would automatically select the ppropriate reference genome, VEP cache and chromosomal writting. If something different than 'GRCh37' or 'GRCh38' is selected, then error message.
- 
+ **Future IBVL update:** The user should define which assembly they want to use when lauching the workflow (nextflow run <pipeline-name> --genome GRCh37 <--other-arguments>
+	
+Need to modify the config file with something in the lines of :
+	
  ```
- // User must define the assembly they wish to use
- // GRCh37 or GRCh38
- Assembly="GRCh37"
+params {
+  genomes {
+    'GRCh37' {
+	ref_genome="/mnt/common/DATABASES/REFERENCES/GRCh37/GENOME/GRCh37-lite.fa"
+	vep_cache="/mnt/common/DATABASES/REFERENCES/GRCh37/VEP/"
+	Mitochondiral_chromosome="chrM"
+    }
+    'GRCh38' {
+	ref_genome="/mnt/common/DATABASES/REFERENCES/GRCh38/GENOME/1000G/GRCh38_full_analysis_set_plus_decoy_hla.fa"
+	vep_cache="/mnt/common/DATABASES/REFERENCES/GRCh38/VEP/"
+	Mitochondiral_chromosome="MT"  }
+}
  ```
  
  ## Alignment (Fastq --> Bam)
