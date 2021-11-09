@@ -119,8 +119,7 @@ singularity exec -B /mnt/scratch/SILENT/Act3/ -B /mnt/common/SILENT/Act3/ /mnt/c
         -F HOM-REF \
         -F HOM-VAR \
         -F NO-CALL \
-        -F MULTI-ALLELIC \
-        -F Consequence
+        -F MULTI-ALLELIC 
 ```
 	
 
