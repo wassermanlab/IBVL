@@ -156,3 +156,4 @@ Common for SNV and MT variants
   
   --stats_file [filename] = Summary stats file name. This is an HTML file containing a summary of the VEP run - the file name must end ".htm" or ".html". Default = "variant_effect_output.txt_summary.html"
 
+**Future IBVL Update :** : Include VEP plugins
