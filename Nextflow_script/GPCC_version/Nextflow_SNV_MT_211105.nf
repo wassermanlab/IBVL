@@ -1317,3 +1317,17 @@ process multiqc_pop {
 
         output :
         file '*' into multiqc_pop
+
+        publishDir "$params.outdir_pop/${version}/QC/multiQC/", mode: 'copy'
+
+        script :
+        """
+        module load singularity
+
+        singularity exec -B /mnt/scratch/SILENT/Act3/ -B /mnt/common/SILENT/Act3/ /mnt/common/SILENT/Act3/singularity/multiqc-1.9.sif \
+        multiqc $params.outdir_pop/${version}/QC/
+        """
+}
+
+
+
