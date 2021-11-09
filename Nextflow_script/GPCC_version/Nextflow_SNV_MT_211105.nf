@@ -9,28 +9,30 @@
 // Common part again : Variant annotation using VEP
 
 //The version will be defined by the date when the process was started (As it will be a several days process, start day and end day may be different) - format : AAAAMMDD
-params.version="20211021"
+params.version="20211105"
 
 // Define the path
 //Path to fastq folder (input)
 params.fastq="/mnt/scratch/SILENT/Act3/GSC_data/Dry_run/*.{R1,R2}.fastq.gz"
 fastq_file = file(params.fastq)
+
 //Path to Processed_Individual (output and input)
 params.outdir_ind = '/mnt/scratch/SILENT/Act3/Processed/Individual/'
 //Path to Processed_Population (output)
 params.outdir_pop = '/mnt/scratch/SILENT/Act3/Processed/Population/'
 
+// For GRCh38 - Get the genome files
+// To update : When using GRCh38, should use "chrM" to extract MT reads and chr20 to extract only variants on chr 20 with DeepVariant 
+//params.ref_genome="/mnt/common/DATABASES/REFERENCES/GRCh38/GENOME/1000G/GRCh38_full_analysis_set_plus_decoy_hla.fa"
+//params.vep_cache="/mnt/common/DATABASES/REFERENCES/GRCh38/VEP/"
 
-// The reference genome file must be in the scratch space to be loaded by singularity (singularity cannot load a file in the cvmfs)
-// Get the genome files
-params.ref_genome="/mnt/common/DATABASES/REFERENCES/GRCh38/GENOME/1000G/GRCh38_full_analysis_set_plus_decoy_hla.fa"
+// For GRCh37 - Get the genome files
+// To update : When using GRCh38, should use "MT" to extract MT reads and 20 to extract only variants on chr 20 with DeepVariant
+params.ref_genome="/mnt/common/DATABASES/REFERENCES/GRCh37/GENOME/GRCh37-lite.fa"
+params.vep_cache="/mnt/common/DATABASES/REFERENCES/GRCh37/VEP/"
+
 ref_genome_file = file(params.ref_genome)
-
-//For the bwa mem alignemnt step, the ref genome can be located on cvmfs as it is not a singularity process
-// Better to use the one on cvmfs as it is indexed by bwa already
-params.ref_genome_cvmfs="/mnt/common/DATABASES/REFERENCES/GRCh38/GENOME/1000G/GRCh38_full_analysis_set_plus_decoy_hla.fa"
-ref_genome_cvmfs_file = file(params.ref_genome_cvmfs)
-
+vep_cache=file(params.vep_cache)
 
 //////////////////////////////////////////////////////////////
 // Pre-alignment QC
@@ -77,8 +79,8 @@ Channel
 // In order to view the files added to the channel, it is possible to add .view() but it HAS TO BE the line after fromFilePairs (Second line)
 
 //
-// Step Alignment 1. fastq alignment with bwa mem 
-//	Sort with samtools
+// Alignment. fastq alignment with bwa mem 
+//		Sort with samtools
 //
 
 process sorted_bam_files {
@@ -88,15 +90,15 @@ process sorted_bam_files {
 	publishDir "$params.outdir_ind/${version}/BAM/", mode: 'copy'
 
 	input :
-	ref_genome_cvmfs_file
+	ref_genome_file
 	set sampleId, file(reads) from samples_ch
 	val version from params.version
 	path outdir_ind from params.outdir_ind
 	path outdir_pop from params.outdir_pop
 
 	output :
-	file '*.bam' optional true into sorted_bam_files
-	file '*.bai' optional true into sorted_bam_files_index
+	file '*.bam' into sorted_bam_files
+	file '*.bai' into sorted_bam_files_index
 
 	script:
 	"""
@@ -104,7 +106,7 @@ process sorted_bam_files {
 	source \$ANNOTATEVARIANTS_INSTALL/opt/miniconda3/etc/profile.d/conda.sh
 	conda activate \$ANNOTATEVARIANTS_INSTALL/opt/AnnotateVariantsEnvironment
 
-	bwa mem -t 8 -R '@RG\\tID:${sampleId}\\tSM:${sampleId}' ${ref_genome_cvmfs_file} ${reads} | samtools view -Sb | samtools sort -o ${sampleId}_sorted.bam
+	bwa mem -t 8 -R '@RG\\tID:${sampleId}\\tSM:${sampleId}' ${ref_genome_file} ${reads} | samtools view -Sb | samtools sort -o ${sampleId}_sorted.bam
 	
 	samtools index ${sampleId}_sorted.bam
 	"""
@@ -141,13 +143,13 @@ process Mosdepth {
 	publishDir "$params.outdir_ind/${version}/QC/Mosdepth/", mode: 'copy'
 
 	input :
-	ref_genome_cvmfs_file
+	ref_genome_file
 	file (bam) from sorted_bam_files7
 	file (bai) from sorted_bam_files_index7
 	val version from params.version
 
 	output : 
-	file '*' optional true into mosdepth
+	file '*' into mosdepth
 
 	script :
 	"""
@@ -170,13 +172,13 @@ process Picard_CollectWgsMetrics {
 	publishDir "$params.outdir_ind/${version}/QC/Picard_CollectWgsMetrics/", mode: 'copy'
 
 	input :
-	ref_genome_cvmfs_file
+	ref_genome_file
 	file (bam) from sorted_bam_files6
 	file (bai) from sorted_bam_files_index6
 	val version from params.version
 
 	output :
-	file '*_collect_wgs_metrics.txt' optional true into Picard_CollectWgsMetrics
+	file '*_collect_wgs_metrics.txt' into Picard_CollectWgsMetrics
 
 	script :
 	"""
@@ -186,7 +188,7 @@ process Picard_CollectWgsMetrics {
         gatk	CollectWgsMetrics \
 	-I ${bam} \
 	-O ${bam.simpleName}_collect_wgs_metrics.txt \
-	-R ${ref_genome_cvmfs_file}
+	-R ${ref_genome_file}
 	"""
 }
 
@@ -206,7 +208,7 @@ process Picard_CollectAlignmentSummaryMetrics {
 	val version from params.version
 
 	output :
-	file '*_Picard_Alignment*' optional true into Picard_CollectAlignmentSummaryMetrics
+	file '*_Picard_Alignment*' into Picard_CollectAlignmentSummaryMetrics
 
 	script :
 	"""
@@ -235,7 +237,7 @@ process Picard_QualityScoreDistribution {
 	val version from params.version
 
 	output :
-	file '*_qual_score_dist.*' optional true into Picard_QualityScoreDistribution
+	file '*_qual_score_dist.*' into Picard_QualityScoreDistribution
 
 	script :
 	"""
@@ -276,7 +278,7 @@ process multiqc_indiv {
 	val version from params.version
 
 	output :
-	file '*' optional true into multiqc_indiv
+	file '*' into multiqc_indiv
 
 	publishDir "$params.outdir_ind/${version}/QC/multiqc/", mode: 'copy'
 
@@ -291,14 +293,11 @@ process multiqc_indiv {
 
 
 
-
-
-
 //////////////////////////////////////////////////////////////
 //SNV Calling
 
 //
-// Step SNV calling 1. Call variants using deepvariant
+// SNV calling. Call variants using deepvariant
 //
 
 
@@ -324,19 +323,19 @@ process deepvariant_call {
 	module load singularity
 
 	echo ${bam.simpleName}
-	singularity exec -B /mnt/scratch/SILENT/Act3/ -B /mnt/common/SILENT/Act3/ -B /mnt/common/DATABASES/REFERENCES/GRCh38/GENOME/1000G/ /mnt/common/SILENT/Act3/singularity/deepvariant-1.2.0.sif \
+	singularity exec -B /mnt/scratch/SILENT/Act3/ -B /mnt/common/SILENT/Act3/ -B /mnt/common/DATABASES/REFERENCES/ /mnt/common/SILENT/Act3/singularity/deepvariant-1.2.0.sif \
 	/opt/deepvariant/bin/run_deepvariant \
 	--model_type=WGS \
 	--ref=${ref_genome_file} \
 	--reads=${bam.simpleName}.bam \
-	--regions chr20 \
+	--regions 20 \
 	--output_gvcf=${bam.simpleName}.g.vcf.gz \
 	--output_vcf=${bam.simpleName}.vcf.gz
 	"""
 }
 
 //
-// Step SNV Calling 2. Create a list with all the vcf 
+// SNV Calling. Create a list with all the vcf 
 // (!) Need to be done once all calls have been performed
 //
 
@@ -359,7 +358,7 @@ process gvcfs_txt {
 }
 
 //
-// Step SNV Caling 3. GLnexus to combine individual gvcf
+// SNV Caling. GLnexus to combine individual gvcf
 //
 
 process GLnexus_cli {
@@ -387,7 +386,7 @@ process GLnexus_cli {
 }
 
 //
-// Step SNV Calling 4. Transform the bcf into a vcf
+// SNV Calling. Transform the bcf into a vcf
 //
 
 process bcf_to_vcf {
@@ -449,7 +448,7 @@ ShiftBack_chain_MT_file=file(params.ShiftBack_chain_MT)
 
 
 //
-// Step MT 1. index both Ref (shifted by 8000nt and non shifted)
+// MT. index both Ref (shifted by 8000nt and non shifted)
 // Fasta downloaded from https://github.com/broadinstitute/gatk/tree/master/src/test/resources/large/mitochondria_references
 //
 
@@ -480,7 +479,7 @@ MT_Index_Reference.into {
 }
 
 //
-// Step MT 2. Extract the MT reads from the bam file
+// MT. Extract the MT reads from the bam file
 //
 
 process Extract_MT_Read {
@@ -500,7 +499,7 @@ process Extract_MT_Read {
 	echo ${bam.simpleName}
 	singularity exec -B /mnt/scratch/SILENT/Act3/ -B /mnt/common/SILENT/Act3/ /mnt/common/SILENT/Act3/singularity/gatk4-4.2.0.sif \
 	gatk PrintReads \
-	-L chrM \
+	-L MT \
 	--read-filter MateOnSameContigOrNoMappedMateReadFilter \
 	--read-filter MateUnmappedAndUnmappedReadFilter \
 	-I ${bam.simpleName}.bam \
@@ -539,7 +538,7 @@ MT_SamtoFastq.into {
 
 
 //
-//Step MT 3. Align the reads against the ref genome and the shifted ref genome//
+// MT. Align the reads against the ref genome and the shifted ref genome//
 //
 
 process align_to_MT {
@@ -560,9 +559,9 @@ process align_to_MT {
 	conda activate \$ANNOTATEVARIANTS_INSTALL/opt/AnnotateVariantsEnvironment
 
 	echo ${fastqfromsam.baseName}
-	bwa mem -R "@RG\\tID:${fastqfromsam.baseName}\\tSM:${fastqfromsam.baseName}\\tPL:illumina" Homo_sapiens_assembly38.chrM.fasta ${fastqfromsam.baseName}.fastq | samtools view -u -bS | samtools sort > ${fastqfromsam.baseName}_chrM.bam
+	bwa mem -R "@RG\\tID:${fastqfromsam.baseName}\\tSM:${fastqfromsam.baseName}\\tPL:illumina" Homo_sapiens_assembly38.chrM.fasta ${fastqfromsam.baseName}.fastq | samtools view -u -bS | samtools sort > ${fastqfromsam.baseName}.bam
 
-	samtools index ${fastqfromsam.baseName}_chrM.bam
+	samtools index ${fastqfromsam.baseName}.bam
 	"""
 }
 
@@ -583,9 +582,9 @@ process align_to_shifted_MT {
 	source \$ANNOTATEVARIANTS_INSTALL/opt/miniconda3/etc/profile.d/conda.sh
 	conda activate \$ANNOTATEVARIANTS_INSTALL/opt/AnnotateVariantsEnvironment
 
-	bwa mem -R "@RG\\tID:${fastqfromsam.baseName}\\tSM:${fastqfromsam.baseName}\\tPL:illumina" Homo_sapiens_assembly38.chrM.shifted_by_8000_bases.fasta ${fastqfromsam.baseName}.fastq | samtools view -u -bS | samtools sort > ${fastqfromsam.baseName}_chrM_shifted.bam
+	bwa mem -R "@RG\\tID:${fastqfromsam.baseName}\\tSM:${fastqfromsam.baseName}\\tPL:illumina" Homo_sapiens_assembly38.chrM.shifted_by_8000_bases.fasta ${fastqfromsam.baseName}.fastq | samtools view -u -bS | samtools sort > ${fastqfromsam.baseName}_shifted.bam
 
-	samtools index ${fastqfromsam.baseName}_chrM_shifted.bam
+	samtools index ${fastqfromsam.baseName}_shifted.bam
 	"""
 }
 
@@ -611,7 +610,7 @@ align_to_shifted_MT_bai.into{
 
 
 //
-//Step MT. Identify Duplicate Reads using MarkDuplicates
+// MT. Identify Duplicate Reads using MarkDuplicates
 //
 
 process MarkDuplicates {
@@ -674,7 +673,7 @@ process MarkDuplicates_shifted {
 }
 
 //
-//Step MT. Collect coverage and performance metrics for BAM file using CollectWgsMetrics
+// MT. Collect coverage and performance metrics for BAM file using CollectWgsMetrics
 //
 
 
@@ -729,7 +728,8 @@ process Picard_CollectWgsMetrics_shifted_MT {
 }
 
 //
-//Step MT 4. Call the variants against the ref genome and the shifted ref genome
+// MT. Call the variants against the ref genome and the shifted ref genome
+// Future update : Figure out the error message "  A USER ERROR has occurred: median-autosomal-coverage is not a recognized option" while it is on their website https://gatk.broadinstitute.org/hc/en-us/articles/360036730411-Mutect2
 //
 
 process MT_call_variants {
@@ -815,9 +815,13 @@ process MT_Liftover {
         file ref_genome_MT_file_index
         file ref_genome_MT_file_dict
 	file ShiftBack_chain_MT_file
+        val version from params.version
 
         output :
         file '*_lifted_over.vcf' into MT_Liftover
+	file '*_rejected_variants.vcf' into rejected_liftover
+
+        publishDir "$params.outdir_ind/${version}/Mutect2/Liftover/",  pattern: "*_rejected_variants.vcf",  mode: 'copy'
 
         script :
         """
@@ -853,6 +857,8 @@ process MT_MergeVcfs {
         file '*_merged.vcf.gz' into MT_MergeVcfs
         file '*_merged.vcf.gz.tbi' into MT_MergeVcfs_index
 
+	publishDir "$params.outdir_ind/${version}/Mutect2/", mode: 'copy'
+
         script :
         """
         echo ${MT_call_variants.simpleName}
@@ -864,8 +870,8 @@ process MT_MergeVcfs {
         singularity exec -B /mnt/common/DATABASES/REFERENCES/ -B /mnt/scratch/SILENT/Act3/ -B /mnt/common/SILENT/Act3/ /mnt/common/SILENT/Act3/singularity/gatk4-4.2.0.sif \
         gatk MergeVcfs \
           I=${MT_call_variants} \
-          I=\${sample_name}_sorted_chrM_chrM_shifted_marked_duplicates_Mutect2_lifted_over.vcf \
-          O=\${sample_name}_merged.vcf.gz
+          I=\${sample_name}_sorted_chrM_shifted_marked_duplicates_Mutect2_lifted_over.vcf \
+          O=\${sample_name}_MT_merged.vcf.gz
 	"""
 }
 
@@ -896,17 +902,17 @@ process MT_Merge_stat_file {
         singularity exec -B /mnt/common/DATABASES/REFERENCES/ -B /mnt/scratch/SILENT/Act3/ -B /mnt/common/SILENT/Act3/ /mnt/common/SILENT/Act3/singularity/gatk4-4.2.0.sif \
         gatk MergeMutectStats \
         -stats ${MT_call_variants_stat} \
-        -stats \${sample_name}_sorted_chrM_chrM_shifted_marked_duplicates_Mutect2.vcf.gz.stats \
-        -O \${sample_name}_merged.stats
+        -stats \${sample_name}_sorted_chrM_shifted_marked_duplicates_Mutect2.vcf.gz.stats \
+        -O \${sample_name}_MT_merged.stats
 
 	"""
 }
 
 
 //
-//Step MT 5. Filter merged Mutect2 calls
+// MT. Filter merged Mutect2 calls
+// Concerning FilterMutectCalls: A USER ERROR has occurred: autosomal-coverage is not a recognized option
 //
-
 
 process MT_Filter_Mutect_Calls {
 	memory '4G'
@@ -1151,6 +1157,7 @@ process annotation_table {
         file(vcf_file_SNV) from bcf_to_vcf        
         val version from params.version
         path outdir_pop from params.outdir_pop
+	vep_cache
 
         output :
         file '*_annotation_tab.tsv' into annotation_table
@@ -1173,7 +1180,7 @@ process annotation_table {
         -o ${vcf_file_MT.simpleName}_${version}_annotation_tab.tsv \
 	--offline \
         --cache \
-        --dir_cache /mnt/common/DATABASES/REFERENCES/GRCh38/VEP/ \
+        --dir_cache ${vep_cache} \
         --everything \
         --tab \
         --stats_file ${vcf_file_MT.simpleName}_VEP_stats
@@ -1183,7 +1190,7 @@ process annotation_table {
         -o ${vcf_file_SNV.simpleName}_${version}_annotation_tab.tsv \
         --offline \
 	--cache \
-        --dir_cache /mnt/common/DATABASES/REFERENCES/GRCh38/VEP/ \
+        --dir_cache ${vep_cache} \
         --everything \
         --tab \
         --stats_file ${vcf_file_SNV.simpleName}_VEP_stats
@@ -1236,8 +1243,7 @@ process SNV_frequency_table {
         -F HOM-REF \
         -F HOM-VAR \
         -F NO-CALL \
-        -F MULTI-ALLELIC \
-        -F Consequence
+        -F MULTI-ALLELIC 
         """
 }
 
@@ -1287,7 +1293,6 @@ process MT_frequency_table {
         -F HOM-VAR \
         -F NO-CALL \
         -F MULTI-ALLELIC \
-        -F Consequence \
         -GF AF
         """
 }
@@ -1312,17 +1317,3 @@ process multiqc_pop {
 
         output :
         file '*' into multiqc_pop
-
-        publishDir "$params.outdir_pop/${version}/QC/multiQC/", mode: 'copy'
-
-        script :
-        """
-        module load singularity
-
-        singularity exec -B /mnt/scratch/SILENT/Act3/ -B /mnt/common/SILENT/Act3/ /mnt/common/SILENT/Act3/singularity/multiqc-1.9.sif \
-        multiqc $params.outdir_pop/${version}/QC/
-        """
-}
-
-
-
