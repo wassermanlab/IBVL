@@ -134,7 +134,7 @@ Common for SNV and MT variants
         -o ${vcf_file_MT/SNV.simpleName}_${version}_annotation_tab.tsv \
 	--offline \
         --cache \
-        --dir_cache /mnt/common/DATABASES/REFERENCES/GRCh38/VEP/ \
+        --dir_cache ${vep_cache} \
         --everything \
         --tab \
         --stats_file ${vcf_file_MT/SNV.simpleName}_VEP_stats
