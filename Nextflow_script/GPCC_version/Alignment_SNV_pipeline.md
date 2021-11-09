@@ -13,12 +13,13 @@ This Readme concerns the alignement and SNV part of the pipeline. Some parts are
  The user should comment out with '\\' the version they do not want the pipeline to use
  
  ```
- // For GRCh38 - Get the genome files
-//params.ref_genome="/mnt/common/DATABASES/REFERENCES/GRCh38/GENOME/1000G/GRCh38_full_analysis_set_plus_decoy_hl
-a.fa"
+// For GRCh38 - Get the genome files
+// To update : When using GRCh38, should use "chrM" to extract MT reads and chr20 to extract only variants on chr 20 with DeepVariant 
+//params.ref_genome="/mnt/common/DATABASES/REFERENCES/GRCh38/GENOME/1000G/GRCh38_full_analysis_set_plus_decoy_hla.fa"
 //params.vep_cache="/mnt/common/DATABASES/REFERENCES/GRCh38/VEP/"
 
 // For GRCh37 - Get the genome files
+// To update : When using GRCh38, should use "MT" to extract MT reads and 20 to extract only variants on chr 20 with DeepVariant
 params.ref_genome="/mnt/common/DATABASES/REFERENCES/GRCh37/GENOME/GRCh37-lite.fa"
 params.vep_cache="/mnt/common/DATABASES/REFERENCES/GRCh37/VEP/"
 
