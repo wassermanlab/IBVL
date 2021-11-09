@@ -32,7 +32,7 @@ vep_cache=file(params.vep_cache)
  ```
  // User must define the assembly they wish to use
  // GRCh37 or GRCh38
- Assembly=GRCh37
+ Assembly="GRCh37"
  ```
  
  ## Alignment (Fastq --> Bam)
