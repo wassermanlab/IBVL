@@ -110,9 +110,11 @@ This step is performed using the MT reeference genome and the shifted MT referen
 
 From GATK best practices website : Tools involved: Mutect2 - This step calls mitochondrial variants in the non-control region using the BAM file aligned to the mitochondrial reference and in the control region using the BAM file aligned to the shifted mitochondrial reference. Running Mutect2 in mitochondrial mode automatically sets parameters appropriately for calling on mitochondria with the --mitochondria flag. Specifically, the mode sets –-initial-tumor-lod to 0, –-tumor-lod-to-emit to 0, --af-of-alleles-not-in-resource to 4e-3, and the advanced parameter --pruning-lod-threshold to -4. Setting the advanced option --median-autosomal-coverage argument (default 0) activates a recommended filter against likely erroneously mapped NuMTs (nuclear mitochondrial DNA segments). For the value, provide the median coverage expected in autosomal regions with coverage.
 
+
 From BioRXiv paper : Call variants (GATK Mutect2 --mitochondria-mode -- annotation StrandBiasBySample --max-reads-per-alignment-start 75 --max-mnp-distance 0).
 
-**Future update in the IBVL pipeline** : Setting the advanced option --median-autosomal-coverage argument
+**Future update in the IBVL pipeline** : "A USER ERROR has occurred: median-autosomal-coverage is not a recognized option"
+Solenne asked GATK dev team if this flag will be included in future release of GATK4 or if they should not be used anymore
  
  ```
 singularity exec -B /mnt/scratch/SILENT/Act3/ -B /mnt/common/SILENT/Act3/ /mnt/common/SILENT/Act3/singularity/gatk4-4.2.0.sif \
@@ -191,7 +193,8 @@ singularity exec -B /mnt/scratch/SILENT/Act3/ -B /mnt/common/SILENT/Act3/ /mnt/c
 	-O ${MT_MergeVcfs.simpleName}_filtered.vcf.gz
 ```
 
-  **Future update in the IBVL pipeline** : Add the --autosomal-coverage parameter
+**Future update in the IBVL pipeline** : "A USER ERROR has occurred: autosomal-coverage is not a recognized option"
+Solenne asked GATK dev team if this flag will be included in future release of GATK4 or if they should not be used anymore
 
 **Variant trimming using [LeftAlignAndTrimVariants](https://gatk.broadinstitute.org/hc/en-us/articles/360037225872-LeftAlignAndTrimVariants)**
 
@@ -250,7 +253,6 @@ singularity exec -B /mnt/scratch/SILENT/Act3/ -B /mnt/common/SILENT/Act3/ /mnt/c
         -F HOM-VAR \
         -F NO-CALL \
         -F MULTI-ALLELIC \
-        -F Consequence \
         -GF AF
 ```	
 
