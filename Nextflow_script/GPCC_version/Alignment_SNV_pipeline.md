@@ -35,14 +35,15 @@ Need to modify the config file with something in the lines of :
 params {
   genomes {
     'GRCh37' {
-	ref_genome="/mnt/common/DATABASES/REFERENCES/GRCh37/GENOME/GRCh37-lite.fa"
-	vep_cache="/mnt/common/DATABASES/REFERENCES/GRCh37/VEP/"
-	Mitochondiral_chromosome="chrM"
+		ref_genome="/mnt/common/DATABASES/REFERENCES/GRCh37/GENOME/GRCh37-lite.fa"
+		vep_cache="/mnt/common/DATABASES/REFERENCES/GRCh37/VEP/"
+		Mitochondiral_chromosome="chrM"
     }
     'GRCh38' {
-	ref_genome="/mnt/common/DATABASES/REFERENCES/GRCh38/GENOME/1000G/GRCh38_full_analysis_set_plus_decoy_hla.fa"
-	vep_cache="/mnt/common/DATABASES/REFERENCES/GRCh38/VEP/"
-	Mitochondiral_chromosome="MT"  }
+		ref_genome="/mnt/common/DATABASES/REFERENCES/GRCh38/GENOME/1000G/GRCh38_full_analysis_set_plus_decoy_hla.fa"
+		vep_cache="/mnt/common/DATABASES/REFERENCES/GRCh38/VEP/"
+		Mitochondiral_chromosome="MT"
+	}
 }
  ```
  
