@@ -52,3 +52,8 @@ executor {
 
 The .nf file contains the whole pipeline used to produce the IBVL. Each part of the pipeline is described in the other md files.
  
+ Here is a simplified overview of the pipeline :
+ 
+ 
+ <img width="922" alt="image" src="https://user-images.githubusercontent.com/54953390/141167242-8bef9c97-ab39-403f-b758-19708b811c12.png">
+
