@@ -141,6 +141,8 @@ From BioRXiv paper : Variants called on the shifted reference were mapped back t
   
   **LiftOver the variants called with the shifted reference using [LiftOverVcf](https://gatk.broadinstitute.org/hc/en-us/articles/360036347792-LiftoverVcf-Picard-)**
   
+  ShiftBack.chain downloaded from [here](https://github.com/broadinstitute/gatk/tree/master/src/test/resources/large/mitochondria_references)
+  
   ```
 singularity exec -B /mnt/common/DATABASES/REFERENCES/ -B /mnt/scratch/SILENT/Act3/ -B /mnt/common/SILENT/Act3/ /mnt/common/SILENT/Act3/singularity/gatk4-4.2.0.sif \
         gatk LiftoverVcf \
@@ -213,6 +215,17 @@ singularity exec -B /mnt/scratch/SILENT/Act3/ -B /mnt/common/SILENT/Act3/ /mnt/c
  
 **Future update in the IBVL pipeline** : Add filter out Blacklisted Sites - Tools involved: VariantFiltration. This step filters out blacklisted sites containing unwanted artifacts.
 
+blacklist_sites.hg38.chrM.bed and blacklist_sites.hg38.chrM.bed.idx downloaded from [here](https://github.com/broadinstitute/gatk/tree/master/src/test/resources/large/mitochondria_references)
+
+```
+singularity exec -B /mnt/scratch/SILENT/Act3/ -B /mnt/common/SILENT/Act3/ /mnt/common/SILENT/Act3/singularity/gatk4-4.2.0.sif \
+	gatk VariantFiltration \
+   -R Homo_sapiens_assembly38.chrM.fasta \
+   -V ${MT_trimmed.simpleName}.vcf.gz \
+   -O ${MT_trimmed.simpleName}_filtered.vcf.gz \
+   --mask-name "GATK_artifact" \
+   --mask ${blacklist_sites.hg38.chrM}
+```
 
 ## Merge the variants from the different samples and index file
 
