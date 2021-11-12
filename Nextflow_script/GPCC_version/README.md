@@ -23,8 +23,10 @@ For nextflow to work, a config file must be created, and the nextflow script mus
 
 Which tracing and vizualisation to use, details are available here : https://www.nextflow.io/docs/latest/tracing.html
 
+The <assembly_version> should be GRCh37 or GRCh38. It will automatically select the appropriate reference genome, VEP cache and mitochondrial nomenclature. It is a mendatory information.
+
 ```
-nextflow log <run name> --resume -with-report [file name] --with-trace -with-timeline [file name] -with-dag flowchart.png
+nextflow log <run name> --resume -profile <assembly_version> -with-report [file name] --with-trace -with-timeline [file name] -with-dag flowchart.png
 ```  
 
 ## .config file
@@ -48,6 +50,42 @@ executor {
     queueSize = 20
 }
 ```  
+
+The profiles allows to guide the script to the appropriate reference genome, VEP cache and mitochondrial nomenclature. GRCh37 or GRCh38 must be specified in the .sh file
+
+```
+profiles {
+
+        GRCh37 {
+		params.assembly='GRCh37'
+                params.ref_genome='/mnt/common/DATABASES/REFERENCES/GRCh37/GENOME/GRCh37-lite.fa'
+                params.ref_genome_fai='/mnt/common/DATABASES/REFERENCES/GRCh37/GENOME/GRCh37-lite.fa.fai'
+                params.ref_genome_amb='/mnt/common/DATABASES/REFERENCES/GRCh37/GENOME/GRCh37-lite.fa.amb'
+                params.ref_genome_ann='/mnt/common/DATABASES/REFERENCES/GRCh37/GENOME/GRCh37-lite.fa.ann'
+                params.ref_genome_bwt='/mnt/common/DATABASES/REFERENCES/GRCh37/GENOME/GRCh37-lite.fa.bwt'
+                params.ref_genome_pac='/mnt/common/DATABASES/REFERENCES/GRCh37/GENOME/GRCh37-lite.fa.pac'
+                params.ref_genome_sa='/mnt/common/DATABASES/REFERENCES/GRCh37/GENOME/GRCh37-lite.fa.sa'            
+                params.Mitochondrial_chromosome='MT'
+		params.vep_cache='/mnt/common/DATABASES/REFERENCES/GRCh37/VEP/'
+        }
+
+        GRCh38 {
+		params.assembly='GRCh38'
+                params.ref_genome='/mnt/common/DATABASES/REFERENCES/GRCh38/GENOME/1000G/GRCh38_full_analysis_set_plus_decoy_hla.fa'
+                params.ref_genome_fai='/mnt/common/DATABASES/REFERENCES/GRCh38/GENOME/1000G/GRCh38_full_analysis_set_plus_decoy_hla.fa.fai'
+                params.ref_genome_amb='/mnt/common/DATABASES/REFERENCES/GRCh38/GENOME/1000G/GRCh38_full_analysis_set_plus_decoy_hla.fa.amb'
+                params.ref_genome_ann='/mnt/common/DATABASES/REFERENCES/GRCh38/GENOME/1000G/GRCh38_full_analysis_set_plus_decoy_hla.fa.ann'
+                params.ref_genome_bwt='/mnt/common/DATABASES/REFERENCES/GRCh38/GENOME/1000G/GRCh38_full_analysis_set_plus_decoy_hla.fa.bwt'
+                params.ref_genome_pac='/mnt/common/DATABASES/REFERENCES/GRCh38/GENOME/1000G/GRCh38_full_analysis_set_plus_decoy_hla.fa.pac'
+                params.ref_genome_sa='/mnt/common/DATABASES/REFERENCES/GRCh38/GENOME/1000G/GRCh38_full_analysis_set_plus_decoy_hla.fa.sa' 
+		params.Mitochondrial_chromosome='chrM'
+		params.vep_cache='/mnt/common/DATABASES/REFERENCES/GRCh38/VEP/'
+        }
+}
+```
+
+
+
 # .nf file
 
 The .nf file contains the whole pipeline used to produce the IBVL. Each part of the pipeline is described in the other md files.
