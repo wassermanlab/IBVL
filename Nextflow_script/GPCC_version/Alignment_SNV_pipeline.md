@@ -4,49 +4,6 @@ This readme is for everyone to comment on things to add / modify in the script
 
 This Readme concerns the alignement and SNV part of the pipeline. Some parts are common with the MT and the SV pipeline.
  
- **GRCh37 and GRCh38**
- 
- The first release of the IBVL will be done based on GRCh37, however, it is the team wishes to also made a release available in GRCh38 quickly after.
- 
- Changing the assembly requires to change the reference genome for alignment, as well as the VEP cache for annotation.
- 
- The user should comment out with '\\' the version they do not want the pipeline to use
- 
- ```
-// For GRCh38 - Get the genome files
-// To update : When using GRCh38, should use "chrM" to extract MT reads and chr20 to extract only variants on chr 20 with DeepVariant 
-//params.ref_genome="/mnt/common/DATABASES/REFERENCES/GRCh38/GENOME/1000G/GRCh38_full_analysis_set_plus_decoy_hla.fa"
-//params.vep_cache="/mnt/common/DATABASES/REFERENCES/GRCh38/VEP/"
-
-// For GRCh37 - Get the genome files
-// To update : When using GRCh38, should use "MT" to extract MT reads and 20 to extract only variants on chr 20 with DeepVariant
-params.ref_genome="/mnt/common/DATABASES/REFERENCES/GRCh37/GENOME/GRCh37-lite.fa"
-params.vep_cache="/mnt/common/DATABASES/REFERENCES/GRCh37/VEP/"
-
-ref_genome_file = file(params.ref_genome)
-vep_cache=file(params.vep_cache)
-```
- 
- **Future IBVL update:** The user should define which assembly they want to use when lauching the workflow (nextflow run <pipeline-name> --genome GRCh37 <--other-arguments>
-	
-Need to modify the config file with something in the lines of :
-	
- ```
-params {
-  genomes {
-    'GRCh37' {
-		ref_genome="/mnt/common/DATABASES/REFERENCES/GRCh37/GENOME/GRCh37-lite.fa"
-		vep_cache="/mnt/common/DATABASES/REFERENCES/GRCh37/VEP/"
-		Mitochondiral_chromosome="chrM"
-    }
-    'GRCh38' {
-		ref_genome="/mnt/common/DATABASES/REFERENCES/GRCh38/GENOME/1000G/GRCh38_full_analysis_set_plus_decoy_hla.fa"
-		vep_cache="/mnt/common/DATABASES/REFERENCES/GRCh38/VEP/"
-		Mitochondiral_chromosome="MT"
-	}
-}
- ```
- 
  ## Alignment (Fastq --> Bam)
   
 ```
