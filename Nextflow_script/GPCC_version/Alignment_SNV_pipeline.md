@@ -113,4 +113,10 @@ Common for SNV and MT variants
   
   --stats_file [filename] = Summary stats file name. This is an HTML file containing a summary of the VEP run - the file name must end ".htm" or ".html". Default = "variant_effect_output.txt_summary.html"
 
-**Future IBVL Update :** : Include VEP plugins
+**Future IBVL Update :** : Include VEP plugins, will depend on the assembly version, here is an example for GRCh38
+
+```
+	--dir_plugins '/mnt/common/DATABASES/REFERENCES/GRCh38/VEP/PLUGINS/ \
+	--plugin MaxEntScan,'/mnt/common/WASSERMAN_SOFTWARE/VEP/fordownload/' \
+	--plugin SpliceAI,snv='/mnt/common/DATABASES/REFERENCES/GRCh38/SPLICEAI/spliceai_scores.masked.snv.hg38.vcf.gz',indel='/mnt/common/DATABASES/REFERENCES/GRCh38/SPLICEAI/spliceai_scores.masked.indel.hg38.vcf.gz'
+```
