@@ -1,0 +1,5 @@
+severity_number	consequence
+11	missense_variant
+18	synonymous_variant
+23	non_coding_transcript_exon_variant
+24	intron_variant
