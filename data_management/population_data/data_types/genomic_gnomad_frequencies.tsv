@@ -1,6 +1,6 @@
-0
-object
-float64
-int64
-int64
-int64
+	0
+variant	object
+af_total	float64
+ac_total	int64
+an_total	int64
+hom_alt_total	int64

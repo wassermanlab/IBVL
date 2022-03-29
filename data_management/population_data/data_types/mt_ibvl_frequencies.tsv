@@ -1,9 +1,9 @@
-0
-object
-int64
-int64
-int64
-float64
-float64
-object
-float64
+	0
+variant	object
+an	int64
+ac_hom	int64
+ac_het	int64
+af_hom	float64
+af_het	float64
+hl_hist	object
+max_hl	float64

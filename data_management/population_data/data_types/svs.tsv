@@ -1,11 +1,11 @@
-0
-object
-int64
-int64
-float64
-object
-float64
-object
-object
-object
-object
+	0
+variant	object
+chr1	int64
+chr1_pos1	int64
+chr1_pos2	float64
+type	object
+length	float64
+algorithm	object
+ucsc_url	object
+gnomad_id	object
+gnomad_url	object

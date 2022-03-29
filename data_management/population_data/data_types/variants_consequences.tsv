@@ -1,4 +1,4 @@
-0
-int64
-object
-object
+	0
+severity	int64
+variant	object
+transcript	object

@@ -1,18 +1,18 @@
-0
-object
-object
-int64
-int64
-int64
-object
-object
-float64
-object
-object
-object
-object
-object
-float64
-object
-float64
-float64
+	0
+variant	object
+type	object
+length	int64
+chr	int64
+pos	int64
+ref	object
+alt	object
+cadd_score	float64
+cadd_intr	object
+dbsnp_id	object
+dbsnp_url	object
+ucsc_url	object
+ensembl_url	object
+clinvar_url	float64
+gnomad_url	object
+clinvar_vcv	float64
+splice_ai	float64

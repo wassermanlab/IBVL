@@ -1,5 +1,5 @@
-0
-object
-object
-object
-float64
+	0
+transcript_id	object
+gene	object
+transcript_type	object
+tsl	float64

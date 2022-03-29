@@ -1,3 +1,3 @@
-0
-int64
-object
+	0
+severity_number	int64
+consequence	object
