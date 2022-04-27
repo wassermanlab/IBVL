@@ -713,4 +713,63 @@ end;
 ALTER TRIGGER  "bi_SV_CONSEQUENCES" ENABLE
 /
 
--- TODO: Add creation of Users here
+-- TODO: Update creation of Users here
+CREATE SEQUENCE   TEST_USERS_SEQ  
+    MINVALUE 1 
+    MAXVALUE 999999999999999999999999999 
+    INCREMENT BY 1 
+    START WITH 1 
+    NOCACHE  
+    NOORDER  
+    NOCYCLE  
+    NOKEEP  
+    GLOBAL
+
+CREATE TABLE  "TEST_USERS" 
+   (	"USER_ID" NUMBER, 
+	"USER_NAME" VARCHAR2(255) NOT NULL ENABLE, 
+	"PASSWORD" VARCHAR2(255) NOT NULL ENABLE, 
+	 PRIMARY KEY ("USER_ID")
+  USING INDEX  ENABLE, 
+	 CONSTRAINT "USERS_U1" UNIQUE ("USER_NAME")
+  USING INDEX  ENABLE
+   )
+/
+
+CREATE OR REPLACE EDITIONABLE TRIGGER  "TEST_BI_USERS" 
+  before insert on test_users 
+      for each row 
+          begin 
+            -- Get a unique sequence value to use as the primary key
+            SELECT "TEST_USERS_SEQ".nextval INTO :new.user_id from sys.dual; 
+            -- Make sure to save the username in upper case
+            :new.user_name := upper(:new.user_name); 
+            -- Hash the password so we are not saving clear text
+            :new.password := hash_password(upper(:new.user_name), :new.password); 
+            --DBMS_OUTPUT.PUT_LINE('HI');
+          end;
+
+/
+ALTER TRIGGER  "TEST_BI_USERS" ENABLE
+/
+
+CREATE OR REPLACE EDITIONABLE TRIGGER  "TEST_BU_USERS" 
+  before update on test_users 
+  for each row 
+begin 
+  -- Make sure to save the user name in upper case
+  :new.user_name := upper(:new.user_name); 
+  -- If the new password is not null 
+  if :new.password is not null then 
+    -- Make sure to hash the password so it is not stored in clear text
+    :new.password := hash_password(upper(:new.user_name), :new.password); 
+  -- If the password is empty
+  else 
+    -- Keep the old hashed password. We don't want a blank password.
+    :new.password := :old.password; 
+  end if; 
+end;
+
+/
+ALTER TRIGGER  "TEST_BU_USERS" ENABLE
+/
