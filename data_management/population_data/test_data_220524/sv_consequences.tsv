@@ -1,0 +1,16 @@
+gene	variant	consequence
+KRTAP21-1	CPX_21_5154	copy_gain
+BACH1	INV_21_823	LoF
+ATP5J	DUP_21_49984	int_exon_duplication
+ATP5J	DEL_21_179620	intronic
+ATP5J	DEL_21_179621	intronic
+ATP5J	DEL_21_179622	intronic
+GABPA	INS_21_113007	intronic
+GABPA	INS_21_113008	intronic
+GABPA	DEL_21_179623	intronic
+GABPA	INS_21_113009	intronic
+GABPA	INS_21_113010	intronic
+USP25	CPX_21_5154	partial_duplication
+ADAMTS1	INV_21_823	inversion_span
+JAM2	DUP_21_49984	partial_duplication
+ADAMTS1	CPX_21_5154	inversion_span
