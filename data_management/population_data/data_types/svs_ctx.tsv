@@ -3,5 +3,5 @@ variant	object
 chr2	int64
 chr2_pos1	int64
 ucsc_url2	object
-gnomda_id2	float64
-gnomda_url2	float64
+gnomad_id2	float64
+gnomad_url2	float64
