@@ -1,4 +1,4 @@
-variant	af_total	af_xx	af_xy	ac_total	ac_xx	ac_xy	an_total	an_xx	an_xy	hom_alt_total	hom_alt_xx	hom_alt_xy	quality
+variant	af_tot	af_xx	af_xy	ac_tot	ac_xx	ac_xy	an_tot	an_xx	an_xy	hom_tot	hom_xx	hom_xy	quality
 CPX_21_5154	0.000046	9.21914E-05	0	1	1	0	21694	10847	10847	0	0	0	935
 INV_21_823	0.000046	0	9.21914E-05	1	0	1	21694	10847	10847	0	0	0	935
 DUP_21_49984	0.000046	0	9.21914E-05	1	0	1	21694	10847	10847	0	0	0	935

@@ -1,15 +1,15 @@
 	0
 variant	object
-af_total	float64
+af_tot	float64
 af_xx	float64
 af_xy	float64
-ac_total	int64
+ac_tot	int64
 ac_xx	int64
 ac_xy	int64
-an_total	int64
+an_tot	int64
 an_xx	int64
 an_xy	int64
-hom_alt_total	int64
-hom_alt_xx	int64
-hom_alt_xy	int64
+hom_tot	int64
+hom_xx	int64
+hom_xy	int64
 quality	int64

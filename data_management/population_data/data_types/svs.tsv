@@ -3,8 +3,8 @@ variant	object
 chr1	int64
 chr1_pos1	int64
 chr1_pos2	float64
-type	object
-length	float64
+sv_type	object
+sv_length	float64
 algorithm	object
 ucsc_url	object
 gnomad_id	object
