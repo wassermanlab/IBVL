@@ -16,6 +16,7 @@ import pandas as pd
 import sys
 import os
 from dotenv import load_dotenv
+from datetime import datetime
 
 load_dotenv()
 
@@ -45,9 +46,9 @@ dirs = [
     "genes",
     "transcripts"
     ]
-chromosomes = ['chr1','chr2','chr3']
+#chromosomes = ['chr1','chr2','chr3']
 
-#chromosomes = ['chr1', 'chr2', 'chr3', 'chr4', 'chr5', 'chr6', 'chr7', 'chr8', 'chr9', 'chr10', 'chr11', 'chr12', 'chr13', 'chr14', 'chr15', 'chr16', 'chr17', 'chr18', 'chr19', 'chr20', 'chr21', 'chr22', 'chrX', 'chrY', 'MT', 'str', 'sv_MEI_chr1', 'sv_MEI_chr2', 'sv_MEI_chr3', 'sv_MEI_chr4', 'sv_MEI_chr5', 'sv_MEI_chr6', 'sv_MEI_chr7', 'sv_MEI_chr8', 'sv_MEI_chr9', 'sv_MEI_chr10', 'sv_MEI_chr11', 'sv_MEI_chr12', 'sv_MEI_chr13', 'sv_MEI_chr14', 'sv_MEI_chr15', 'sv_MEI_chr16', 'sv_MEI_chr17', 'sv_MEI_chr18', 'sv_MEI_chr19', 'sv_MEI_chr20', 'sv_MEI_chr21', 'sv_MEI_chr22', 'sv_MEI_chrX', 'sv_MEI_chrY']
+chromosomes = ['chr1', 'chr2', 'chr3', 'chr4', 'chr5', 'chr6', 'chr7', 'chr8', 'chr9', 'chr10', 'chr11', 'chr12', 'chr13', 'chr14', 'chr15', 'chr16', 'chr17', 'chr18', 'chr19', 'chr20', 'chr21', 'chr22', 'chrX', 'chrY', 'MT', 'str', 'sv_MEI_chr1', 'sv_MEI_chr2', 'sv_MEI_chr3', 'sv_MEI_chr4', 'sv_MEI_chr5', 'sv_MEI_chr6', 'sv_MEI_chr7', 'sv_MEI_chr8', 'sv_MEI_chr9', 'sv_MEI_chr10', 'sv_MEI_chr11', 'sv_MEI_chr12', 'sv_MEI_chr13', 'sv_MEI_chr14', 'sv_MEI_chr15', 'sv_MEI_chr16', 'sv_MEI_chr17', 'sv_MEI_chr18', 'sv_MEI_chr19', 'sv_MEI_chr20', 'sv_MEI_chr21', 'sv_MEI_chr22', 'sv_MEI_chrX', 'sv_MEI_chrY']
 # Define the "GENES" table
 genes_table = Table(
     "GENES",
@@ -109,13 +110,13 @@ def import_genes(file, file_info):
             data = row.to_dict()
             pk = next_id_maps["genes"] + index
             data["ID"] = pk
-            pk_maps["genes"][data["SHORT_NAME"]] = pk
 #            print(data)
 
             cmd = genes_table.insert().values(data)
             try:
                 connection.execute(cmd)
                 successCount +=1
+                pk_maps["genes"][data["SHORT_NAME"]] = pk
             except DataError as e:
                 print(e)
                 failCount +=1
@@ -135,7 +136,7 @@ def resolve_PK(referencedModel, name):
     try:
         return pk_maps[referencedModel][name]
     except KeyError:
-        print("Could not find PK: "+str(name))
+#        print("Could not find PK in "+referencedModel+": "+str(name))
         # query db?
         return None
 
@@ -150,7 +151,6 @@ def import_transcripts(file, file_info):
         for index,row in df.iterrows():
             data = row.to_dict()
             pk = next_id_maps["transcripts"] + index
-            pk_maps["transcripts"][data["TRANSCRIPT_ID"]] = pk
             data["ID"] = pk
             
             if(data["GENE"] == "NA"):
@@ -166,6 +166,7 @@ def import_transcripts(file, file_info):
             try:
                 connection.execute(cmd)
                 successCount +=1
+                pk_maps["transcripts"][data["TRANSCRIPT_ID"]] = pk
             except DataError as e:
                 print(e)
                 failCount +=1
@@ -198,7 +199,10 @@ def emptyTables():
 
 
 emptyTables()
+now = datetime.now()
 for chromosome in chromosomes:
+    successCount = 0
+    failCount = 0
     for modelName in dirs:
         # get all files in folder
         targetFile = rootDir + "/" + modelName + "/" + modelName + "_" + chromosome + ".tsv"
@@ -210,7 +214,7 @@ for chromosome in chromosomes:
     #       mydb.execute(createStatements[modelName])
             
             if os.path.isfile(targetFile):
-#                print("importing "+chromosome+" to Table: "+modelName+"...")
+                print("importing "+chromosome+" to Table: "+modelName+"...")
                 #print(targetFile)
 
                 file_info = inspectTSV(targetFile)
@@ -220,6 +224,7 @@ for chromosome in chromosomes:
                 print("File not found: "+targetFile)
     print("Chromosome imported: "+chromosome)
 
+print("Finished importing all chromosomes. Took this much time: "+str(datetime.now() - now))
 # Read TSV
 # df = pd.read_csv('genes/genes_chr1.tsv', sep='\t')
 
