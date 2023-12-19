@@ -31,15 +31,26 @@ if rootDir == None:
 
 dbConnectionString = os.environ.get("DB")
 
-print(rootDir)
-
+print("connecting...")
 if (verbose):
     engine = create_engine(dbConnectionString, echo=True, pool_pre_ping=True, pool_recycle=3600, connect_args={'autocommit': True})
 else:
     engine = create_engine(dbConnectionString, pool_pre_ping=True, pool_recycle=3600, connect_args={'autocommit': True})
 
-print("connecting...")
 mydb = engine.connect()
+
+print("testing read...")
+df = pd.read_sql_query("SELECT * FROM GENES", engine)
+print(df)
+
+
+
+doContinue = input("continue? (y/n): ")
+
+if doContinue != "y":
+    print("exiting...")
+    engine.dispose()
+    quit()
 
 metadata = MetaData()
 
@@ -54,3 +65,5 @@ print("creating test table...")
 metadata.create_all(engine)
 
 print("test complete")
+
+engine.dispose()
