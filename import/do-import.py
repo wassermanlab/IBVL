@@ -24,16 +24,16 @@ load_dotenv()
 rootDir = os.environ.get("ORACLE_TABLE_PATH")
 chunk_size = int(os.environ.get("CHUNK_SIZE"))
 verbose = os.environ.get("VERBOSE") == "true"
+dbConnectionString = os.environ.get("DB")
 
 if rootDir == None:
     print("No root directory specified")
     exit()
 
-dbConnectionString = os.environ.get("DB")
 
 print(rootDir)
 
-if (verbose):
+if (False and verbose):
     engine = create_engine(dbConnectionString, echo=True, pool_pre_ping=True, pool_recycle=3600, connect_args={'autocommit': True})
 else:
     engine = create_engine(dbConnectionString, pool_pre_ping=True, pool_recycle=3600, connect_args={'autocommit': True})
@@ -44,32 +44,16 @@ metadata = MetaData()
 
 dirs = [
     "genes",
-    "transcripts"
+    "transcripts",
+    "severities",
+    "variants"
     ]
-#chromosomes = ['chr1','chr2','chr3']
-
+#chromosomes = ['chrY','chrX', 'chr10']
 chromosomes = ['chr1', 'chr2', 'chr3', 'chr4', 'chr5', 'chr6', 'chr7', 'chr8', 'chr9', 'chr10', 'chr11', 'chr12', 'chr13', 'chr14', 'chr15', 'chr16', 'chr17', 'chr18', 'chr19', 'chr20', 'chr21', 'chr22', 'chrX', 'chrY', 'MT', 'str', 'sv_MEI_chr1', 'sv_MEI_chr2', 'sv_MEI_chr3', 'sv_MEI_chr4', 'sv_MEI_chr5', 'sv_MEI_chr6', 'sv_MEI_chr7', 'sv_MEI_chr8', 'sv_MEI_chr9', 'sv_MEI_chr10', 'sv_MEI_chr11', 'sv_MEI_chr12', 'sv_MEI_chr13', 'sv_MEI_chr14', 'sv_MEI_chr15', 'sv_MEI_chr16', 'sv_MEI_chr17', 'sv_MEI_chr18', 'sv_MEI_chr19', 'sv_MEI_chr20', 'sv_MEI_chr21', 'sv_MEI_chr22', 'sv_MEI_chrX', 'sv_MEI_chrY']
 # Define the "GENES" table
-genes_table = Table(
-    "GENES",
-    metadata,
-    Column("ID", Integer, primary_key=True),
-    Column("SHORT_NAME", String(30), nullable=False)
-#    UniqueConstraint("SHORT_NAME", name="UNIQUE"),
-)
 
+#max_rows=5
 
-transcripts_table = Table(
-    "TRANSCRIPTS",
-    metadata,
-    Column("TRANSCRIPT_ID", String(255)),
-    Column("ID", Integer, primary_key=True),
-    Column("GENE", Integer),
-    Column("TRANSCRIPT_TYPE", String(1)),
-    Column("TSL", String(255)),
-#    UniqueConstraint("TRANSCRIPT_ID", name="TRANSCRIPTS_UNIQUE"),
- #   ForeignKeyConstraint("GENE", name="TRANSCRIPTS_GENES_FK", ondelete="CASCADE", table="GENES"),
-)
 def transform_header(header):
     # Example: Convert all column names to uppercase
     return [col.upper() for col in header]
@@ -81,55 +65,98 @@ def readTSV(file):
 
 def inspectTSV(file):
     total_rows = 0
-    num_columns = pd.read_csv(file, sep='\t', nrows=4, header=None).shape[1]
+    small_read = pd.read_csv(file, sep='\t', nrows=4, header=None)
+    num_columns = small_read.shape[1]
+    columns = [col.upper() for col in small_read.values.tolist()[0] ]
 
     for chunk in pd.read_csv(file, sep='\t', chunksize=chunk_size):
         total_rows += len(chunk)
 
     return {
         "total_rows": total_rows,
-        "num_columns": num_columns
+        "num_columns": num_columns,
+        "columns": columns
     }
 
-pk_maps = {};
-next_id_maps = {};
+pk_maps = {}
+next_id_maps = {}
+tables = {}
 
 for model in dirs:
     pk_maps[model] = {}
     next_id_maps[model] = 1
 
-def import_genes(file, file_info):
+def import_chr_into_table(file, file_info, name, pk_lookup_col=None, fk_map={}):
     df = readTSV(file)
+    df.fillna('NA', inplace=True)
+
+    print(file_info)
+
+    table = tables.get(name)
+    if (table == None):
+        table = Table(name.upper(), metadata, Column("ID"), *(Column(col) for col in file_info["columns"]))
+        tables[name] = table
 
     with engine.connect() as connection:
 #        connection.execute(delete(genes_table))
 #        print(file_info)
         successCount = 0
         failCount = 0
+        missingRefCount = 0
+        duplicateCount = 0
         for index,row in df.iterrows():
             data = row.to_dict()
-            pk = next_id_maps["genes"] + index
+            pk = next_id_maps[name] + index
             data["ID"] = pk
-#            print(data)
+            if (verbose):
+                print(data)
 
-            cmd = genes_table.insert().values(data)
+            skip = False
+            for (fk_col, fk_model) in fk_map.items():
+                #print("found fk map: "+fk_col+" -> "+fk_model+" in "+name)
+                if (data[fk_col] == 'NA'):
+                    data[fk_col] = None
+                else:
+                    resolved_pk = resolve_PK(fk_model, data[fk_col])
+                    if(verbose):
+                        print("resolved "+fk_model+"."+data[fk_col]+" to "+str(resolved_pk))
+                    if resolved_pk != None:
+                        data[fk_col] = resolved_pk
+                    else:
+                        missingRefCount +=1
+                        skip = True
+            if (skip):
+                continue
+            cmd = table.insert().values(data)
             try:
                 connection.execute(cmd)
                 successCount +=1
-                pk_maps["genes"][data["SHORT_NAME"]] = pk
+                if (pk_lookup_col != None):
+                    pk_maps[name][data[pk_lookup_col]] = pk
+                    if (verbose):
+                        print("added "+name+"."+data[pk_lookup_col]+" to pk map")
             except DataError as e:
                 print(e)
                 failCount +=1
+                quit()
             except IntegrityError as e:
-                print(e)
-                failCount +=1
+                msg = str(e)
+                if ("Duplicate" in msg):
+                    duplicateCount +=1
+                    successCount +=1
+                else:
+                    failCount +=1
+                    print(e)
+                    quit() #temp
             except Exception as e:
                 print(e)
                 failCount +=1
-        next_id_maps["genes"] += file_info["total_rows"]
+        next_id_maps[name] += file_info["total_rows"]
     return {
         "success": successCount,
-        "fail": failCount
+        "fail": failCount,
+        "missingRef": missingRefCount,
+        "duplicate": duplicateCount,
     }
 
 def resolve_PK(referencedModel, name):
@@ -140,54 +167,45 @@ def resolve_PK(referencedModel, name):
         # query db?
         return None
 
-def import_transcripts(file, file_info):
-
-    df = readTSV(file)
-    df.fillna('NA', inplace=True)
-    with engine.connect() as connection:
-        successCount = 0
-        failCount = 0
-
-        for index,row in df.iterrows():
-            data = row.to_dict()
-            pk = next_id_maps["transcripts"] + index
-            data["ID"] = pk
-            
-            if(data["GENE"] == "NA"):
-                data["GENE"] = None
-            else:
-                resolved_pk = resolve_PK("genes", data["GENE"])
-                if resolved_pk != None:
-                    data["GENE"] = resolved_pk
-                else:
-                    failCount +=1
-                    continue
-            cmd = transcripts_table.insert().values(data)
-            try:
-                connection.execute(cmd)
-                successCount +=1
-                pk_maps["transcripts"][data["TRANSCRIPT_ID"]] = pk
-            except DataError as e:
-                print(e)
-                failCount +=1
-            except IntegrityError as e:
-                print(e)
-                failCount +=1
-            except ProgrammingError as e:
-                print(e)
-                exit()
-            except Exception as e:
-                print(e)
-                failCount +=1
-        next_id_maps["transcripts"] += file_info["total_rows"]
-    return {
-        "success": successCount,
-        "fail": failCount
-    }
 # map of import functions
-importFunctions = {
-    "genes": import_genes,
-    "transcripts": import_transcripts
+model_operation_definitions = {
+    "genes": {
+        "f": lambda file, file_info: import_chr_into_table(file, file_info, "genes", "SHORT_NAME"),
+        "file_suffixes":chromosomes
+        },
+    "transcripts": {
+        "f":lambda file, file_info: import_chr_into_table(file, file_info, "transcripts", "TRANSCRIPT_ID", {"GENE": "genes"}),
+        "file_suffixes":chromosomes
+        },
+    "variants": {
+        "f":lambda file, file_info: import_chr_into_table(file, file_info, "variants", "VARIANT_ID"),
+        "file_suffixes":["MT", "str"]
+        },
+#   "mt_gmonad_frequencies": {
+#        "f":lambda file, file_info: import_chr_into_table(file, file_info, "mt_gmonad_frequencies", "VARIANT_ID", {"VARIANT": "variants"}),
+#        "files":["mt_gnomad_frequencies"]
+#     },
+#    "mt_ibvl_frequencies": {
+#        "f":lambda file, file_info: import_chr_into_table(file, file_info, "mt_ibvl_frequencies", "VARIANT_ID", {"VARIANT": "variants"}),
+#        "files":["mt_ibvl_frequencies"]
+#        },
+#   "mts":{
+#        "f":lambda file, file_info: import_chr_into_table(file, file_info, "mts", "VARIANT_ID", {"VARIANT": "variants"}),
+#       "files":["mts"]
+#        },
+#    "str":{
+#        "f":lambda file, file_info: import_chr_into_table(file, file_info, "str", "VARIANT_ID", {"VARIANT": "variants"}),
+#        "files":["str"]
+#        },
+#    "variants_transcripts": {
+#        "f":lambda file, file_info: import_chr_into_table(file, file_info, "variants_transcripts", "VARIANT_ID", {"TRANSCRIPT": "transcripts"}),
+#        "file_suffixes":chromosomes
+#        },
+#    "variants_annotations": {
+#        "f":lambda file, file_info: import_chr_into_table(file, file_info, "variants_annotations", "VARIANT_ID", {"TRANSCRIPT": "transcripts"}),
+#        "file_suffixes":chromosomes
+#        }
+
     }
 
 def emptyTables():
@@ -197,44 +215,72 @@ def emptyTables():
             connection.execute(text("DELETE FROM "+modelName.upper()))
     #        mydb.execute("DELETE FROM "+modelName.upper())
 
-
-emptyTables()
-now = datetime.now()
-for chromosome in chromosomes:
+def try_import_directory(modelName, targetFile, import_function, counts):
     successCount = 0
     failCount = 0
-    for modelName in dirs:
-        # get all files in folder
-        targetFile = rootDir + "/" + modelName + "/" + modelName + "_" + chromosome + ".tsv"
-        if importFunctions[modelName] == None:
-            print("No import function for " + modelName)
-            exit()
-        else:
-    #        mydb.drop(modelName, if_exists="cascade")
-    #       mydb.execute(createStatements[modelName])
+    missingRefCount = 0
+    if import_function == None:
+        print("No import function for " + modelName)
+        exit()
+#        mydb.drop(modelName, if_exists="cascade")
+#       mydb.execute(createStatements[modelName])
+    
+    if os.path.isfile(targetFile):
+        print("importing into "+modelName+" ("+targetFile+")...")
+        #print(targetFile)
+
+        file_info = inspectTSV(targetFile)
+        results = import_function(targetFile, file_info)
+        successCount += results["success"]
+        failCount += results["fail"]
+        missingRefCount += results["missingRef"]
+        duplicateCount = results["duplicate"]
+        percent_success = 100 * successCount / (successCount + failCount)
+        print("finished importing "+targetFile+"\nSuccess: "+str(results["success"])+", Fail: "+str(results["fail"])+". total: "+str(file_info["total_rows"])+ ". missing refs: "+str(results["missingRef"]) + ". Success rate: "+str(percent_success)+"%. Duplicates: "+str(duplicateCount))
+    else:
+        print("File not found: "+targetFile)
+    counts["successCountTotal"] += successCount
+    counts["failCountTotal"] += failCount
+    counts["missingRefCountTotal"] += missingRefCount
+    counts["duplicatesCountTotal"] += duplicateCount
+
+def main():
+        
+    emptyTables()
+    now = datetime.now()
+    counts = {}
+    counts["successCountTotal"] = 0
+    counts["failCountTotal"] = 0
+    counts["missingRefCountTotal"] = 0
+    counts["duplicatesCountTotal"] = 0
+    for op in model_operation_definitions:
+        modelName = op
+        import_function = model_operation_definitions[op]["f"]
+        print(modelName)
+        print(import_function)
+        file_suffixes = model_operation_definitions[op]["file_suffixes"]
+        files = model_operation_definitions[op].get("files") or []
+        for single_file in [rootDir + "/" + modelName + "/" + file_name + ".tsv" for file_name in files]:
+            try_import_directory(modelName, single_file, import_function, counts)
+        for targetFile in [rootDir + "/" + modelName + "/" + modelName + "_" + suffix + ".tsv" for suffix in file_suffixes]:
+            try_import_directory(modelName, targetFile, import_function, counts)
             
-            if os.path.isfile(targetFile):
-                print("importing "+chromosome+" to Table: "+modelName+"...")
-                #print(targetFile)
 
-                file_info = inspectTSV(targetFile)
-                results = importFunctions[modelName](targetFile, file_info)
-                print("finished importing "+chromosome+" into "+modelName+". Success: "+str(results["success"])+", Fail: "+str(results["fail"])+". total: "+str(file_info["total_rows"]))
-            else:
-                print("File not found: "+targetFile)
-    print("Chromosome imported: "+chromosome)
+    print("Finished importing all chromosomes. Took this much time: "+str(datetime.now() - now))
+    percent_success = 100 * counts["successCountTotal"] / (counts["successCountTotal"] + counts["failCountTotal"])
+    print(str(percent_success)+"% of objects were imported. Total success: "+str(counts["successCountTotal"])+", Total fail: "+str(counts["failCountTotal"])+". Total missing refs: "+str(counts["missingRefCountTotal"]+". Total duplicates: "+str(counts["duplicatesCountTotal"])))
+    # Read TSV
+    # df = pd.read_csv('genes/genes_chr1.tsv', sep='\t')
 
-print("Finished importing all chromosomes. Took this much time: "+str(datetime.now() - now))
-# Read TSV
-# df = pd.read_csv('genes/genes_chr1.tsv', sep='\t')
+    # Create cursor
+    # cursor = mydb.cursor()
 
-# Create cursor
-# cursor = mydb.cursor()
-
-# Create table
-# mydb.execute("CREATE TABLE genes (gene_id INT AUTO_INCREMENT PRIMARY KEY, gene_name VARCHAR(255), gene_start INT, gene_end INT, gene_strand VARCHAR(255), gene_biotype VARCHAR(255), gene_chromosome VARCHAR(255))")
+    # Create table
+    # mydb.execute("CREATE TABLE genes (gene_id INT AUTO_INCREMENT PRIMARY KEY, gene_name VARCHAR(255), gene_start INT, gene_end INT, gene_strand VARCHAR(255), gene_biotype VARCHAR(255), gene_chromosome VARCHAR(255))")
 
 
-# Insert data
+    # Insert data
 
-# df.to_sql('genes', con=mydb, if_exists='append', index=False)
+    # df.to_sql('genes', con=mydb, if_exists='append', index=False)
+
+main()
