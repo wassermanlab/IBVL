@@ -298,10 +298,13 @@ def import_chr_into_table(file, file_info, action_info):
                         map_key = "-".join([str(data[col]) for col in pk_lookup_col])
                     elif isinstance(pk_lookup_col, str):
                         map_key = data[pk_lookup_col]
+                    
                     pk_map[map_key] = data["ID"]
                     if verbose:
                         print("added " + name + "." + map_key + " to pk map")
-                pk_maps[name].update(pk_map)
+                for key in pk_map:
+                    if key not in pk_maps[name] and key.upper() not in pk_maps[name]:
+                        pk_maps[name][key] = pk_map[key]
 
     next_id_maps[name] += file_info["total_rows"]
 
