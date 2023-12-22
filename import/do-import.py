@@ -510,7 +510,9 @@ def main():
                     + " rows..."
                 )
                 # print(targetFile)
-
+                if (file_info["total_rows"] == 0):
+                    print("Skipping empty file")
+                    continue
                 results = import_chr_into_table(
                     targetFile,
                     file_info,
