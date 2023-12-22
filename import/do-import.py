@@ -1,5 +1,4 @@
-import array
-import string
+import json
 from sqlalchemy import (
     create_engine,
     text,
@@ -15,11 +14,14 @@ from sqlalchemy import (
 )
 from sqlalchemy.exc import DataError, IntegrityError, ProgrammingError
 import pandas as pd
+import numpy as np
+import logging
 import warnings
 import sys
 import os
 from dotenv import load_dotenv
 from datetime import datetime
+from sqlalchemy import text
 
 load_dotenv()
 
@@ -32,6 +34,12 @@ dbConnectionString = os.environ.get("DB")
 if rootDir == None:
     print("No root directory specified")
     exit()
+
+data_issue_logger = logging.getLogger("data_issues")
+data_issue_logger.setLevel(logging.WARNING)
+data_issue_handler = logging.FileHandler(f"data_issues-{str(datetime.now())}.log")
+data_issue_handler.setLevel(logging.WARNING)
+data_issue_logger.addHandler(data_issue_handler)
 
 
 print(rootDir)
@@ -56,11 +64,7 @@ mydb = engine.connect()
 
 metadata = MetaData()
 
-chromosomes = ["chrY", "chrX", "chr10"]
-# chromosomes = ['chr1', 'chr2', 'chr3', 'chr4', 'chr5', 'chr6', 'chr7', 'chr8', 'chr9', 'chr10', 'chr11', 'chr12', 'chr13', 'chr14', 'chr15', 'chr16', 'chr17', 'chr18', 'chr19', 'chr20', 'chr21', 'chr22', 'chrX', 'chrY', 'MT', 'str', 'sv_MEI_chr1', 'sv_MEI_chr2', 'sv_MEI_chr3', 'sv_MEI_chr4', 'sv_MEI_chr5', 'sv_MEI_chr6', 'sv_MEI_chr7', 'sv_MEI_chr8', 'sv_MEI_chr9', 'sv_MEI_chr10', 'sv_MEI_chr11', 'sv_MEI_chr12', 'sv_MEI_chr13', 'sv_MEI_chr14', 'sv_MEI_chr15', 'sv_MEI_chr16', 'sv_MEI_chr17', 'sv_MEI_chr18', 'sv_MEI_chr19', 'sv_MEI_chr20', 'sv_MEI_chr21', 'sv_MEI_chr22', 'sv_MEI_chrX', 'sv_MEI_chrY']
-# Define the "GENES" table
-
-use_n_chromosomes=0
+use_n_chromosomes = 0
 
 
 def transform_header(header):
@@ -68,11 +72,11 @@ def transform_header(header):
     return [col.upper() for col in header]
 
 
-def readTSV(file, info):
-    df = pd.read_csv(file, sep=info["separator"])  # ,header=0,names=transform_header)
+def readTSV(file, info, dtype={}):
+#    df = pd.read_csv(file, sep=info["separator"], dtype=dtype, na_values=["NA"], keep_default_na=False)
+    df = pd.read_csv(file, sep=info["separator"], dtype=dtype)
     df.rename(columns={"All_info$variant": "variant"}, inplace=True)
     df.columns = [col.upper() for col in df.columns]
-    #  set column "a" to instead be "b"
     return df
 
 
@@ -82,315 +86,344 @@ def inspectTSV(file):
     small_read = pd.read_csv(file, sep="\t", nrows=4, header=None)
 
     num_columns = small_read.shape[1]
-    if (num_columns == 1 and "gene" not in file):
+    if num_columns == 1 and "gene" not in file:
         separator = " "
         small_read = pd.read_csv(file, sep=" ", nrows=4, header=None)
-        if (small_read.shape[1] ==1):
-            print("Could not determine separator for "+file)
+        if small_read.shape[1] == 1:
+            print("Could not determine separator for " + file)
             quit()
-        
+
     columns = [col.upper() for col in small_read.values.tolist()[0]]
 
     for chunk in pd.read_csv(file, sep="\t", chunksize=chunk_size):
         total_rows += len(chunk)
 
-    return {"total_rows": total_rows, "num_columns": num_columns, "columns": columns, "types": {}, "separator": separator}
+    return {
+        "total_rows": total_rows,
+        "num_columns": num_columns,
+        "columns": columns,
+        "types": {},
+        "separator": separator,
+    }
 
 
 pk_maps = {}
 next_id_maps = {}
+
+try:
+    # Load from file
+    with open("pk_maps.json", "r") as f:
+        pk_maps = json.load(f)
+
+    with open("next_id_maps.json", "r") as f:
+        next_id_maps = json.load(f)
+except FileNotFoundError:
+    print("No pk_maps.json file found. Starting from scratch.")
+    pass
+
 tables = {}
 
-def import_chr_into_table(file, file_info, name, pk_lookup_col=None, fk_map={}):
-    warnings.filterwarnings("ignore")
-    df = readTSV(file, file_info)
-    df.fillna("NA", inplace=True)
-    warnings.resetwarnings()
 
-#    print(file_info)
+# TODO: chunkify the insert operation: catch exception on bulk, then break into smaller chunks and iterate
+# add persisting maps
+# add boolean to skip emptying table before importing
+def persist_maps():
+    # Save to file
+    with open("pk_maps.json", "w") as f:
+        json.dump(pk_maps, f)
 
-    table = tables.get(name)
-    if table == None:
-        columns = file_info["columns"]
-        if "DO_COMPOUND_FK" in fk_map:
-            columns.remove("VARIANT")
-            columns.remove("TRANSCRIPT")
-            columns.append("VARIANT_TRANSCRIPT")
-        table = Table(
-            name.upper(),
-            metadata,
-            Column("ID"),
-            *(Column(col) for col in columns)
-        )
-        tables[name] = table
-    
-    with engine.connect() as connection:
-        #        connection.execute(delete(genes_table))
-        #        print(file_info)
-        successCount = 0
-        failCount = 0
-        missingRefCount = 0
-        duplicateCount = 0
-        for index, row in df.iterrows():
-            data = row.to_dict()
-            pk = next_id_maps[name] + index
-            data["ID"] = pk
+    with open("next_id_maps.json", "w") as f:
+        json.dump(next_id_maps, f)
 
-            if verbose:
-                print(data)
 
-            skip = False
-            for fk_col, fk_model in fk_map.items():
-#                print("found fk map: "+fk_col+" -> "+fk_model+" in "+name)
-                map_key = None
-                resolved_pk = None
-                if fk_col == "DO_COMPOUND_FK":
-                    map_key = "|".join([ data["VARIANT"], data["TRANSCRIPT"]])
-                    del data["VARIANT"]
-                    del data["TRANSCRIPT"]
-                    resolved_pk = resolve_PK("variants_transcripts", map_key)
-                    fk_col = "VARIANT_TRANSCRIPT"
-                else:
-                    map_key = data[fk_col]
-                if map_key == "NA":
-                    data[fk_col] = None # FIXME causes missing refs
-                else:
-                    resolved_pk = resolve_PK(fk_model, map_key)
-                if map_key != None and verbose:
-                    print(
-                        "resolved "
-                        + fk_model
-                        + "."
-                        + data[fk_col]
-                        + " to "
-                        + str(resolved_pk)
-                    )
-                if resolved_pk != None:
-                    data[fk_col] = resolved_pk
-                else:
-                    missingRefCount += 1
-                    skip = True
-            if skip:
-                continue
-            cmd = table.insert().values(data)
-            try:
-                connection.execute(cmd)
-                successCount += 1
-                map_key = None
-                if isinstance(pk_lookup_col,list):
-                    map_key = "|".join([data[col] for col in pk_lookup_col])
-                elif isinstance(pk_lookup_col, str):
-                    map_key = data[pk_lookup_col]
-                if pk_lookup_col != None:
-                    pk_maps[name][map_key] = pk
-                    if verbose:
-                        print(
-                            "added " + name + "." + map_key + " to pk map"
-                        )
-            except DataError as e:
-                print(e)
-                failCount += 1
-                quit()
-            except IntegrityError as e:
-                msg = str(e)
-                if "Duplicate" in msg:
-                    duplicateCount += 1
-                    successCount += 1
-                else:
-                    failCount += 1
-                    print(e)
-                    quit()  # temp
-            except Exception as e:
-                print(e)
-                failCount += 1
-        next_id_maps[name] += file_info["total_rows"]
-    return {
-        "success": successCount,
-        "fail": failCount,
-        "missingRef": missingRefCount,
-        "duplicate": duplicateCount,
-    }
+def chunks(l, n):
+    """Yield successive n-sized chunks from list l."""
+    for i in range(0, len(l), n):
+        yield l[i : i + n]
 
 
 def resolve_PK(referencedModel, name):
     try:
-        return pk_maps[referencedModel][name]
+        result = pk_maps[referencedModel][name]
+        return result
     except KeyError:
         #        print("Could not find PK in "+referencedModel+": "+str(name))
         # query db?
         return None
 
 
+def import_chr_into_table(file, file_info, action_info):
+    name = action_info.get("name")
+    fk_map = action_info.get("fk_map")
+    pk_lookup_col = action_info.get("pk_lookup_col")
+    filters = action_info.get("filters") or {}
+
+    missingRefCount = 0
+    table = tables.get(name)
+    if table is None:
+        columns = file_info["columns"]
+        if "DO_COMPOUND_FK" in fk_map:
+            columns.remove("VARIANT")
+            columns.remove("TRANSCRIPT")
+            columns.append("VARIANT_TRANSCRIPT")
+        table = Table(name.upper(), metadata, autoload_with=engine)
+        tables[name] = table
+
+    # for column in table.columns:
+    #    print(f"{name} Column Name: {column.name}, Column Type: {column.type}")
+
+    #    warnings.filterwarnings("ignore")
+    types_dict = {}
+    for column in table.columns:
+        # convert sql types to pandas types
+        if isinstance(column.type, Integer):
+            types_dict[column.name] = "Int64"
+        elif isinstance(column.type, String):
+            types_dict[column.name] = "str"
+        elif isinstance(column.type, Float):
+            types_dict[column.name] = "float64"
+        else:
+            pass
+
+    df = readTSV(file, file_info, dtype=types_dict)
+    df.replace(np.nan, None, inplace=True)
+#    df = df.where(pd.notnull(df), None)
+#    df.fillna(None)
+    #   warnings.resetwarnings()
+    data_list = []
+    for index, row in df.iterrows():
+        data = row.to_dict()
+        pk = next_id_maps[name] + index
+        data["ID"] = pk
+
+        skip = False
+        for col, filter in filters.items():
+            data[col] = filter(data[col])
+        for fk_col, fk_model in fk_map.items():
+            map_key = None
+            resolved_pk = None
+            debug_row = None
+            if fk_col == "DO_COMPOUND_FK":
+                debug_row = data.copy()
+                v_id = resolve_PK("variants", data["VARIANT"])
+                t_id = resolve_PK("transcripts", data["TRANSCRIPT"])
+                map_key = "-".join([str(t_id), str(v_id)])
+                del data["VARIANT"]
+                del data["TRANSCRIPT"]
+                resolved_pk = resolve_PK("variants_transcripts", map_key)
+                fk_col = "VARIANT_TRANSCRIPT"
+            else:
+                map_key = data[fk_col]
+                if map_key == "NA":
+                    data[fk_col] = None
+                else:
+                    resolved_pk = resolve_PK(fk_model, map_key)
+            if map_key is not None and verbose:
+                print(
+                    "resolved "
+                    + fk_model
+                    + "."
+                    + data[fk_col]
+                    + " to "
+                    + str(resolved_pk)
+                )
+            if resolved_pk is not None:
+                data[fk_col] = resolved_pk
+            else:
+                # MOVE TO error.log
+                data_issue_logger.warning(
+                    "Could not resolve using map key "
+                    + map_key
+                    + " for "
+                    + fk_model
+                    + "."
+                    + fk_col
+                    + " in "
+                )
+                if (debug_row is not None):
+                    data_issue_logger.warning(debug_row)
+                else:
+                    data_issue_logger.warning(data)
+                missingRefCount += 1
+                skip = True
+        if skip:
+            continue
+        data_list.append(data)
+
+    with engine.connect() as connection:
+        successCount = 0
+        failCount = 0
+        duplicateCount = 0
+        successful_chunks = 0
+        fail_chunks = 0
+
+        for chunk in chunks(data_list, chunk_size):
+            try:
+                connection.execute(table.insert(), chunk)
+                # chunk worked
+                successful_chunks += 1
+                successCount += len(chunk)
+            except Exception as e:
+                #                print(e)
+                fail_chunks += 1
+                for row in chunk:
+                    try:
+                        connection.execute(table.insert(), row)
+                        successCount += 1
+
+                    except DataError as e:
+                        data_issue_logger.warn(e)
+                        failCount += 1
+                        quit()
+                    except IntegrityError as e:
+                        msg = str(e)
+                        if "Duplicate" in msg:
+                            duplicateCount += 1
+                            successCount += 1
+                        else:
+                            failCount += 1
+                            data_issue_logger.warn(e)
+#                            quit()
+                    except Exception as e:
+                        data_issue_logger.warn(e)
+                        failCount += 1
+
+            if pk_lookup_col is not None:
+                pk_map = {}
+                for data in chunk:
+                    # record the PKS for each row that was added
+                    if isinstance(pk_lookup_col, list):
+#                        print(pk_lookup_col)
+#                        print(data)
+                        map_key = "-".join([str(data[col]) for col in pk_lookup_col])
+                    elif isinstance(pk_lookup_col, str):
+                        map_key = data[pk_lookup_col]
+                    pk_map[map_key] = data["ID"]
+                    if verbose:
+                        print("added " + name + "." + map_key + " to pk map")
+                pk_maps[name].update(pk_map)
+
+    next_id_maps[name] += file_info["total_rows"]
+
+    return {
+        "success": successCount,
+        "fail": failCount,
+        "missingRef": missingRefCount,
+        "duplicate": duplicateCount,
+        "successful_chunks": successful_chunks,
+        "fail_chunks": fail_chunks,
+    }
+
+
 # map of import functions
-model_operation_definitions = {
+model_import_actions = {
     "genes": {
-        "f": lambda file, file_info: import_chr_into_table(
-            file, file_info, "genes", "SHORT_NAME"
-        ),
-#        "skip":True
+        "name": "genes",
+        "pk_lookup_col": "SHORT_NAME",
+        "fk_map": {},
+        "empty_first": True
+        #        "skip":True
     },
     "transcripts": {
-        "f": lambda file, file_info: import_chr_into_table(
-            file, file_info, "transcripts", "TRANSCRIPT_ID", {"GENE": "genes"}
-        )
+        "name": "transcripts",
+        "pk_lookup_col": "TRANSCRIPT_ID",
+        "fk_map": {"GENE": "genes"},
+        "empty_first": True,
+        "filters": {
+            "TRANSCRIPT_TYPE": lambda x: x.replace("RefSeq", "R"),
+        },
     },
     "variants": {
-        "f": lambda file, file_info: import_chr_into_table(
-            file, file_info, "variants", "VARIANT_ID"
-        ),
-#        "skip":True
+        "name": "variants",
+        "pk_lookup_col": "VARIANT_ID",
+        "fk_map": {},
+        "empty_first": True
+        #        "skip":True
     },
     "variants_transcripts": {
-        "f": lambda file, file_info: import_chr_into_table(
-            file,
-            file_info,
-            "variants_transcripts",
-            ["TRANSCRIPT", "VARIANT"],
-            {"TRANSCRIPT": "transcripts", "VARIANT": "variants"},
-        ),
-#        "skip":True
+        "name": "variants_transcripts",
+        "pk_lookup_col": ["TRANSCRIPT", "VARIANT"],
+        "fk_map": {"TRANSCRIPT": "transcripts", "VARIANT": "variants"},
+        "empty_first": True
+        #        "skip":True
     },
     "variants_annotations": {
-          # RESOLVE variant AND transcript value to PK in variants_transcripts
-        "f": lambda file, file_info: import_chr_into_table(
-            file,
-            file_info,
-            "variants_annotations",
-            None,
-            {"DO_COMPOUND_FK":"for variants and annotations"},
-        )
+        "name": "variants_annotations",
+        "pk_lookup_col": None,
+        "fk_map": {"DO_COMPOUND_FK": "for variants_transcripts"},
+        "empty_first": True,
+        "filters":{
+            "HGVSP": lambda x: x.replace("%3D","=")
+        }
     },
     "variants_consequences": {
-          # RESOLVE variant AND transcript value to PK in variants_transcripts
-        "f": lambda file, file_info: import_chr_into_table(
-            file,
-            file_info,
-            "variants_consequences",
-            None,
-            {"DO_COMPOUND_FK":"for variants and annotations"}
-        )
+        "name": "variants_consequences",
+        "pk_lookup_col": None,
+        "fk_map": {"DO_COMPOUND_FK": "for variants_transcripts"},
+        "empty_first": True,
     },
     "sv_consequences": {
-        "f": lambda file, file_info: import_chr_into_table(
-            file,
-            file_info,
-            "sv_consequences",
-            None,
-            {"GENE": "genes", "VARIANT": "variants"},
-        ),
-#        "preprocess": lambda file, file_info: convert(file, file_info),
+        "name": "sv_consequences",
+        "pk_lookup_col": None,
+        "fk_map": {"GENE": "genes", "VARIANT": "variants"},
+        "empty_first": True,
     },
     "snvs": {
-        "f": lambda file, file_info: import_chr_into_table(
-            file, file_info, "snvs", None, {"VARIANT": "variants"}
-        )
+        "name": "snvs",
+        "pk_lookup_col": None,
+        "fk_map": {"VARIANT": "variants"},
+        "empty_first": True,
     },
     "svs": {
-        "f": lambda file, file_info: import_chr_into_table(
-            file, file_info, "svs", None, {"VARIANT": "variants"}
-        )
+        "name": "svs",
+        "pk_lookup_col": None,
+        "fk_map": {"VARIANT": "variants"},
+        "empty_first": True,
     },
     "svs_ctx": {
-        "f": lambda file, file_info: import_chr_into_table(
-            file, file_info, "svs_ctx", None, {"VARIANT": "variants"}
-        )
+        "name": "svs_ctx",
+        "pk_lookup_col": None,
+        "fk_map": {"VARIANT": "variants"},
+        "empty_first": True,
     },
     "str": {
-        "f": lambda file, file_info: import_chr_into_table(
-            file, file_info, "str", None, {"VARIANT": "variants"}
-        )
+        "name": "str",
+        "pk_lookup_col": None,
+        "fk_map": {"VARIANT": "variants"},
+        "empty_first": True,
     },
     "mts": {
-        "f": lambda file, file_info: import_chr_into_table(
-            file, file_info, "mts", None, {"VARIANT": "variants"}
-        )
+        "name": "mts",
+        "pk_lookup_col": None,
+        "fk_map": {"VARIANT": "variants"},
+        "empty_first": True,
     },
     "genomic_ibvl_frequencies": {
-        "f": lambda file, file_info: import_chr_into_table(
-            file,
-            file_info,
-            "genomic_ibvl_frequencies",
-            None,
-            {"VARIANT": "variants"},
-        )
+        "name": "genomic_ibvl_frequencies",
+        "pk_lookup_col": None,
+        "fk_map": {"VARIANT": "variants"},
+        "empty_first": True,
     },
     "genomic_gnomad_frequencies": {
-        "f": lambda file, file_info: import_chr_into_table(
-            file,
-            file_info,
-            "genomic_gnomad_frequencies",
-            None,
-            {"VARIANT": "variants"},
-        )
+        "name": "genomic_gnomad_frequencies",
+        "pk_lookup_col": None,
+        "fk_map": {"VARIANT": "variants"},
+        "empty_first": True,
     },
     "mt_ibvl_frequencies": {
-        "f": lambda file, file_info: import_chr_into_table(
-            file,
-            file_info,
-            "mt_ibvl_frequencies",
-            None,
-            {"VARIANT": "variants"},
-        )
+        "name": "mt_ibvl_frequencies",
+        "pk_lookup_col": None,
+        "fk_map": {"VARIANT": "variants"},
+        "empty_first": True,
     },
     "mt_gnomad_frequencies": {
-        "f": lambda file, file_info: import_chr_into_table(
-            file,
-            file_info,
-            "mt_gnomad_frequencies",
-            None,
-            {"VARIANT": "variants"},
-        )
+        "name": "mt_gnomad_frequencies",
+        "pk_lookup_col": None,
+        "fk_map": {"VARIANT": "variants"},
+        "empty_first": True,
     },
 }
 
-
-def try_import_file(modelName, targetFile, import_function, counts):
-    successCount = 0
-    failCount = 0
-    missingRefCount = 0
-    duplicateCount = 0
-    if import_function == None:
-        print("No import function for " + modelName)
-        exit()
-    #        mydb.drop(modelName, if_exists="cascade")
-    #       mydb.execute(createStatements[modelName])
-
-    if os.path.isfile(targetFile):
-        print("\nimporting into " + modelName + " (" + targetFile.split("/")[-1] + ")...")
-        # print(targetFile)
-
-        file_info = inspectTSV(targetFile)
-        results = import_function(targetFile, file_info)
-        successCount += results["success"]
-        failCount += results["fail"]
-        missingRefCount += results["missingRef"]
-        duplicateCount = results["duplicate"]
-
-        percent_success = "N/A"
-        if successCount + failCount > 0:
-            percent_success = 100 * successCount / (successCount + failCount)
-        print(
-            "finished importing "
-            + targetFile.split("/")[-1]
-            + "\nSuccess: "
-            + str(results["success"])
-            + ", Fail: "
-            + str(results["fail"])
-            + ". total: "
-            + str(file_info["total_rows"])
-            + ". missing refs: "
-            + str(results["missingRef"])
-            + ". Success rate: "
-            + str(percent_success)
-            + "%. Duplicates: "
-            + str(duplicateCount)
-        )
-    else:
-        print("File not found: " + targetFile)
-    counts["successCountTotal"] += successCount
-    counts["failCountTotal"] += failCount
-    counts["missingRefCountTotal"] += missingRefCount
-    counts["duplicatesCountTotal"] += duplicateCount
 
 def report_counts(counts):
     percent_success = "N/A"
@@ -402,7 +435,7 @@ def report_counts(counts):
         )
     print(
         str(percent_success)
-        + "% of objects were imported. Total success: "
+        + "% success. Count: "
         + str(counts["successCountTotal"])
         + ", Total fail: "
         + str(counts["failCountTotal"])
@@ -410,7 +443,13 @@ def report_counts(counts):
         + str(counts["missingRefCountTotal"])
         + ". Total duplicates: "
         + str(counts["duplicatesCountTotal"])
+        + ". Total successful chunks: "
+        + str(counts["successful_chunks"])
+        + ". Total fail chunks: "
+        + str(counts["fail_chunks"])
     )
+
+
 def main():
     now = datetime.now()
     counts = {}
@@ -418,37 +457,121 @@ def main():
     counts["failCountTotal"] = 0
     counts["missingRefCountTotal"] = 0
     counts["duplicatesCountTotal"] = 0
-    for modelName in model_operation_definitions:
-        if(model_operation_definitions[modelName].get("skip")):
+    counts["successful_chunks"] = 0
+    counts["fail_chunks"] = 0
+
+    for modelName, action_info in model_import_actions.items():
+        model_counts = {}
+        model_counts["successCountTotal"] = 0
+        model_counts["failCountTotal"] = 0
+        model_counts["missingRefCountTotal"] = 0
+        model_counts["duplicatesCountTotal"] = 0
+        model_counts["successful_chunks"] = 0
+        model_counts["fail_chunks"] = 0
+
+        if action_info.get("skip"):
             continue
         modelNow = datetime.now()
         # TODO: consider running multiple times / retrying
-        pk_maps[modelName] = {}
-        next_id_maps[modelName] = 1
-        with engine.connect() as connection:
-            connection.execute(text("DELETE FROM " + modelName.upper()))
-        modelName = modelName
-        import_function = model_operation_definitions[modelName]["f"]
+        if modelName not in pk_maps:
+            pk_maps[modelName] = {}
+        if modelName not in next_id_maps:
+            next_id_maps[modelName] = 1
+        if action_info.get("empty_first"):
+            print("Emptying table " + modelName)
+            pk_maps[modelName] = {}
+            next_id_maps[modelName] = 1
+            with engine.connect() as connection:
+                connection.execute(text("DELETE FROM " + modelName.upper()))
+                # reset table id counter
+                connection.execute(
+                    text("ALTER TABLE " + modelName.upper() + " AUTO_INCREMENT = 1")
+                )
+
         # get files from folder
-        #sort alphabetically but with numbers in order
+        # sort alphabetically but with numbers in order
         sorted_files = sorted(
             os.listdir(rootDir + "/" + modelName),
-            #key=lambda x: x.reverse(),
-            reverse=True
+            # key=lambda x: x.reverse(),
+            #            reverse=True
         )
-#        sorted_files = sorted_files[:use_n_chromosomes]
+        #        sorted_files = sorted_files[:use_n_chromosomes]
         for file in sorted_files:
             if file.endswith(".tsv"):
-                file_path = rootDir + "/" + modelName + "/" + file
-       #     rootDir + "/" + modelName + "/" + file_name + ".tsv" for file_name in files
-                try_import_file(modelName, file_path, import_function, counts)
+                targetFile = rootDir + "/" + modelName + "/" + file
+                file_info = inspectTSV(targetFile)
+                print(
+                    "\nimporting "
+                    + modelName
+                    + " ("
+                    + targetFile.split("/")[-1]
+                    + "). Expecting "
+                    + str(file_info["total_rows"])
+                    + " rows..."
+                )
+                # print(targetFile)
+
+                results = import_chr_into_table(
+                    targetFile,
+                    file_info,
+                    action_info,
+                )
+                successCount = results.get("success") or 0
+                failCount = results.get("fail") or 0
+                missingRefCount = results.get("missingRef") or 0
+                duplicateCount = results.get("duplicate") or 0
+                successful_chunks = results.get("successful_chunks") or 0
+                fail_chunks = results.get("fail_chunks") or 0
+
+                percent_success = "N/A"
+                if successCount + failCount > 0:
+                    percent_success = 100 * successCount / (successCount + failCount)
+                print(
+                    "Success: "
+                    + str(successCount)
+                    + ", Fail: "
+                    + str(failCount)
+                    + ". total: "
+                    + str(file_info["total_rows"])
+                    + ". missing refs: "
+                    + str(missingRefCount)
+                    + ". Success rate: "
+                    + str(percent_success)
+                    + "%. Duplicates: "
+                    + str(duplicateCount)
+                    + ". Successful chunks: "
+                    + str(successful_chunks)
+                    + ". Fail chunks: "
+                    + str(fail_chunks)
+                )
+                persist_maps()
+                if successCount == 0:
+                    print("No rows were imported. Exiting.")
+                    quit()
+
+                model_counts["successCountTotal"] += successCount
+                model_counts["failCountTotal"] += failCount
+                model_counts["missingRefCountTotal"] += missingRefCount
+                model_counts["duplicatesCountTotal"] += duplicateCount
+                model_counts["successful_chunks"] += successful_chunks
+                model_counts["fail_chunks"] += fail_chunks
+
+                counts["successCountTotal"] += successCount
+                counts["failCountTotal"] += failCount
+                counts["missingRefCountTotal"] += missingRefCount
+                counts["duplicatesCountTotal"] += duplicateCount
+                counts["successful_chunks"] += successful_chunks
+                counts["fail_chunks"] += fail_chunks
 
         print(
-            "Finished importing "+modelName+". Took this much time: "
+            "Finished importing "
+            + modelName
+            + ". Took this much time: "
             + str(datetime.now() - modelNow)
         )
-        report_counts(counts)
+        report_counts(model_counts)
     print("finished importing IBVL. Time Taken: " + str(datetime.now() - now))
     report_counts(counts)
+
 
 main()
