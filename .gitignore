@@ -127,3 +127,7 @@ app/.pnp.js
 
 # misc
 *.DS_Store
+*.log
+next_id_maps.json
+pk_maps.json
+import/jobs/*

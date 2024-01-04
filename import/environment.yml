@@ -32,6 +32,7 @@ dependencies:
   - mysql-common=8.0.33=h1d20c9b_6
   - mysql-connector-python=8.0.32=py310h0be9042_1
   - mysql-libs=8.0.33=hed35180_6
+  - natsort=8.4.0=pyhd8ed1ab_0
   - ncurses=6.4=hcec6c5f_0
   - numpy=1.26.2=py310h2a7ecf2_0
   - openssl=3.2.0=hd75f5a5_1

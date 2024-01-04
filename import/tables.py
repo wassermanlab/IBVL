@@ -8,6 +8,7 @@ from sqlalchemy import (
     Float,
     UniqueConstraint,
     ForeignKey,
+    text
 )
 
 from sqlalchemy.exc import DataError, IntegrityError, ProgrammingError
@@ -145,7 +146,7 @@ snvs_table = Table(
     Column("ID", Integer, primary_key=True),
     Column("TYPE", String(30)),
     Column("LENGTH", Integer),
-    Column("CHR", Integer),
+    Column("CHR", String(2)),
     Column("POS", Integer),
     Column("REF", String(255)),
     Column("ALT", String(255)),
@@ -272,3 +273,9 @@ severities_table = Table(
 )
 
 metadata.create_all(engine)
+
+severities_sql = "INSERT INTO `SEVERITIES` (`SEVERITY_NUMBER`, `ID`, `CONSEQUENCE`) VALUES(1, 1, 'transcript_ablation'),(2, 2, 'splice_acceptor_variant'),(3, 3, 'splice_donor_variant'),(4, 4, 'stop_gained'),(5, 5, 'frameshift_variant'),(6, 6, 'stop_lost'),(7, 7, 'start_lost'),(8, 8, 'transcript_amplification'),(9, 9, 'inframe_insertion'),(10, 10, 'inframe_deletion'),(11, 11, 'missense_variant'),(12, 12, 'protein_altering_variant'),(13, 13, 'regulatory_region_ablation'),(14, 14, 'splice_region_variant'),(15, 15, 'incomplete_terminal_codon_variant'),(16, 16, 'start_retained_variant'),(17, 17, 'stop_retained_variant'),(18, 18, 'synonymous_variant'),(19, 19, 'coding_sequence_variant'),(20, 20, 'mature_miRNA_variant'),(21, 21, '5_prime_UTR_variant'),(22, 22, '3_prime_UTR_variant'),(23, 23, 'non_coding_transcript_exon_variant'),(24, 24, 'intron_variant'),(25, 25, 'NMD_transcript_variant'),(26, 26, 'non_coding_transcript_variant'),(27, 27, 'upstream_gene_variant'),(28, 28, 'downstream_gene_variant'),(29, 29, 'TFBS_ablation'),(30, 30, 'TFBS_amplification'),(31, 31, 'TF_binding_site_variant'),(32, 32, 'regulatory_region_amplification'),(33, 33, 'feature_elongation'),(34, 34, 'regulatory_region_variant'),(35, 35, 'feature_truncation'),(36, 36, 'intergenic_variant');"
+
+# insert into engine
+with engine.connect() as connection:
+    connection.execute(text(severities_sql))
