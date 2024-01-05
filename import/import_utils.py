@@ -63,10 +63,10 @@ def setup_loggers(job_dir):
 
 def log_data_issue(s):
     data_issue_logger.warning(s)
-    print(s)
+    #print(s)
 def log_output(s):
     output_logger.info(s)
-    print(s)
+    #print(s)
 
 
 def report_counts(counts):

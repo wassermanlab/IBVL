@@ -59,7 +59,7 @@ model_import_actions = {
         "filters": {
             "SHORT_NAME": lambda x: x.upper()
         },
-#        "skip":True
+        #"skip":True
     },
     "transcripts": {
         "name": "transcripts",
@@ -69,21 +69,21 @@ model_import_actions = {
         "filters": {
             "TRANSCRIPT_TYPE": lambda x: x.replace("RefSeq", "R"),
         },
-#        "skip":True
+        #"skip":True
     },
     "variants": {
         "name": "variants",
         "pk_lookup_col": "VARIANT_ID",
         "fk_map": {},
         "empty_first": True,
- #       "skip":True
+        #"skip":True
     },
     "variants_transcripts": {
         "name": "variants_transcripts",
         "pk_lookup_col": ["TRANSCRIPT", "VARIANT"],
         "fk_map": {"TRANSCRIPT": "transcripts", "VARIANT": "variants"},
         "empty_first": True,
-#        "skip":True
+        #"skip":True
     },
     "variants_annotations": {
         "name": "variants_annotations",
@@ -93,21 +93,21 @@ model_import_actions = {
         "filters":{
             "HGVSP": lambda x: x.replace("%3D","=")
         },
-#        "skip":True
+        #"skip":True
     },
     "variants_consequences": {
         "name": "variants_consequences",
         "pk_lookup_col": None,
         "fk_map": {"DO_COMPOUND_FK": "for variants_transcripts"},
         "empty_first": True,
-#        "skip": True,
+        #"skip":True,
     },
     "sv_consequences": {
         "name": "sv_consequences",
         "pk_lookup_col": None,
         "fk_map": {"GENE": "genes", "VARIANT": "variants"},
         "empty_first": True,
-#        "skip": True
+        #"skip":True
     },
     "snvs": {
         "name": "snvs",
@@ -115,32 +115,37 @@ model_import_actions = {
         "fk_map": {"VARIANT": "variants"},
         "empty_first": True,
         "filters":{
-            "DBSNP_ID": lambda x: x.split('&')[0]
-        }
+            "DBSNP_ID": lambda x: x.split('&')[0] if x is not None else None
+        },
+        #"skip":True
     },
     "svs": {
         "name": "svs",
         "pk_lookup_col": None,
         "fk_map": {"VARIANT": "variants"},
         "empty_first": True,
+        #"skip":True
     },
     "svs_ctx": {
         "name": "svs_ctx",
         "pk_lookup_col": None,
         "fk_map": {"VARIANT": "variants"},
         "empty_first": True,
+        #"skip":True
     },
     "str": {
         "name": "str",
         "pk_lookup_col": None,
         "fk_map": {"VARIANT": "variants"},
         "empty_first": True,
+        #"skip":True
     },
     "mts": {
         "name": "mts",
         "pk_lookup_col": None,
         "fk_map": {"VARIANT": "variants"},
         "empty_first": True,
+        #"skip":True
     },
     "genomic_ibvl_frequencies": {
         "name": "genomic_ibvl_frequencies",
@@ -215,13 +220,28 @@ def resolve_PK(referencedModel, name):
         return result
     except KeyError:
         return None
+
+def get_table(model):
+    schema_name = os.environ.get("SCHEMA_NAME")
+    if isinstance(schema_name, str) and len(schema_name) > 0:
+        table_name = schema_name + "." + model.upper()
+    else:
+        table_name = model.upper()
+    global tables
+    if model in tables:
+        return tables[model]
+    else:
+        table = Table(table_name, metadata, autoload_with=engine)
+        tables[model] = table
+        return table
     
 def inject(model, data, map_key):
 # need to dynamically inject the single obj that was missing from original data
     pk = None
+    table = get_table(model)
     with engine.connect() as connection:
         try:
-            result = connection.execute(tables[model].insert(), data)
+            result = connection.execute(table.insert(), data)
             pk = result.inserted_primary_key[0]
             append_to_map(model, map_key, pk)
             next_id_maps[model]  = pk + 1
@@ -243,15 +263,7 @@ def import_file(file, file_info, action_info):
     filters = action_info.get("filters") or {}
 
     missingRefCount = 0
-    table = tables.get(name)
-    if table is None:
-        columns = file_info["columns"]
-        if "DO_COMPOUND_FK" in fk_map:
-            columns.remove("VARIANT")
-            columns.remove("TRANSCRIPT")
-            columns.append("VARIANT_TRANSCRIPT")
-        table = Table(name.upper(), metadata, autoload_with=engine)
-        tables[name] = table
+    table = get_table(name)
     types_dict = {}
     for column in table.columns:
         # convert sql types to pandas types
@@ -457,11 +469,6 @@ def start(db_engine):
     counts["fail_chunks"] = 0
 
     for modelName, action_info in model_import_actions.items():
-        persist_and_unload_maps()
-        referenced_models = action_info.get("fk_map").values()
-        if "DO_COMPOUND_FK" in action_info.get("fk_map"):
-            referenced_models = ["variants_transcripts", "variants", "transcripts"]
-        load_maps(models=referenced_models)
         model_counts = {}
         model_counts["success"] = 0
         model_counts["fail"] = 0
@@ -472,6 +479,11 @@ def start(db_engine):
 
         if action_info.get("skip"):
             continue
+
+        referenced_models = action_info.get("fk_map").values()
+        if "DO_COMPOUND_FK" in action_info.get("fk_map"):
+            referenced_models = ["variants_transcripts", "variants", "transcripts"]
+        load_maps(models=referenced_models)
         modelNow = datetime.now()
         
         # if modelName not in pk_maps:
@@ -481,14 +493,22 @@ def start(db_engine):
         if action_info.get("empty_first"):
             log_output("Emptying table " + modelName)
             with engine.connect() as connection:
-                try:
-                    connection.execute(text("DELETE FROM " + modelName.upper()))
-                    connection.execute(
-                        text("ALTER TABLE " + modelName.upper() + " AUTO_INCREMENT = 1")
-                    )
-                except Exception:
-                    pass
 
+                # Split the deletion into smaller chunks
+                chunk_size = 100000
+                offset = 0
+                while True:
+                    try:
+                        connection.execute(
+                            text("DELETE FROM " + modelName.upper() + " LIMIT " + str(chunk_size) + " OFFSET " + str(offset))
+                        )
+                        offset += chunk_size
+                    except ProgrammingError as e:
+                        break
+                    except Exception as e:
+                        print("error emptying table " + modelName)
+                        print(e)
+                        break
         sorted_files = natsorted(
             [f for f in os.listdir(rootDir + "/" + modelName) if not f.startswith('.')],
         )
@@ -534,6 +554,8 @@ def start(db_engine):
         if this_model_index + 1 < len(model_import_actions.keys()):
             leftover_models = list(model_import_actions.keys())[this_model_index+1:]
             log_output("\nmodels left still: " + str(leftover_models) + "\n")
+        
+        persist_and_unload_maps()
     log_output("finished importing IBVL. Time Taken: " + str(datetime.now() - now))
     report_counts(counts)
     cleanup(None, None)
