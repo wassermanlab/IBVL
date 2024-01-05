@@ -54,7 +54,7 @@ mydb = engine.connect()
 
 print("looks like connecting worked")
 
-doContinue = input("continue? (y/n): ")
+doContinue = input("continue to read test? (y/n): ")
 
 if doContinue != "y":
     print("exiting...")
@@ -68,7 +68,7 @@ print(df)
 
 
 
-doContinue = input("continue? (y/n): ")
+doContinue = input("continue to create table test? (y/n): ")
 
 if doContinue != "y":
     print("exiting...")
@@ -87,6 +87,14 @@ test_table = Table(
 print("creating test table...")
 metadata.create_all(engine)
 
-print("test complete")
+
+
+
+doContinue = input("continue to drop table test? (y/n): ")
+
+if doContinue != "y":
+    print("exiting...")
+    engine.dispose()
+    quit()
 
 engine.dispose()
