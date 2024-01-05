@@ -63,7 +63,7 @@ if doContinue != "y":
 
 print("testing read...")
 
-df = pd.read_sql_query("SELECT * FROM GENES", engine)
+df = pd.read_sql_query("SELECT * FROM BRAD_SANDBOX.GENES", engine)
 print(df)
 
 
@@ -78,7 +78,7 @@ if doContinue != "y":
 metadata = MetaData()
 
 test_table = Table(
-    "TEST",
+    "BRAD_SANDBOX.TEST",
     metadata,
     Column("ID", Integer, primary_key=True),
     Column("SHORT_NAME", String(30), nullable=False)
