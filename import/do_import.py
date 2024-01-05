@@ -222,16 +222,16 @@ def resolve_PK(referencedModel, name):
         return None
 
 def get_table(model):
-    schema_name = os.environ.get("SCHEMA_NAME")
-    if isinstance(schema_name, str) and len(schema_name) > 0:
-        table_name = schema_name + "." + model.upper()
-    else:
-        table_name = model.upper()
     global tables
     if model in tables:
         return tables[model]
     else:
-        table = Table(table_name, metadata, autoload_with=engine)
+
+        schema_name = os.environ.get("SCHEMA_NAME")
+        if isinstance(schema_name, str) and len(schema_name) > 0:
+            table = Table(model.upper(), metadata, autoload_with=engine, schema=schema_name)
+        else:
+            table = Table(model.upper(), metadata, autoload_with=engine)
         tables[model] = table
         return table
     
