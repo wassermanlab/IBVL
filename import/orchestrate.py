@@ -10,20 +10,21 @@ from sqlalchemy import (
 load_dotenv()
 
 dbConnectionString = os.environ.get("DB")
+isDevelopment = os.environ.get("ENVIRONMENT") == "development"
 
 db_name = dbConnectionString.split("/")[-1]
 
-# create the database if it doesn't exist
-engine = create_engine(dbConnectionString, echo=True)
-if database_exists(engine.url):
-    #assume already has structure
-    pass
-else:
-    create_database(dbConnectionString)
-    import tables
+if isDevelopment:
+    # create the database if it doesn't exist
+    engine = create_engine(dbConnectionString, echo=True)
+    if database_exists(engine.url):
+        #assume already has structure
+        pass
+    else:
+        create_database(dbConnectionString)
+        import tables
+    engine.dispose()
 
-
-engine.dispose()
 engine = create_engine(
     dbConnectionString,
     pool_pre_ping=True,
