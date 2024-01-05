@@ -12,7 +12,7 @@ load_dotenv()
 
 dbConnectionString = os.environ.get("DB")
 container = os.environ.get("DB_CONTAINER")
-isDevelopment = os.environ.get("ENVIRONMENT") == "development"
+isDevelopment = os.environ.get("ENVIRONMENT") != "production"
 
 db_name = dbConnectionString.split("/")[-1]
 
@@ -39,6 +39,7 @@ if isinstance(container, str) and len(container) > 0:
 else:
     engine = create_engine(
         dbConnectionString,
+        echo=True,
         pool_pre_ping=True,
         pool_recycle=3600,
         connect_args={"autocommit": True},

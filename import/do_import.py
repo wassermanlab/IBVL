@@ -8,6 +8,8 @@ from sqlalchemy import (
     Column,
     Integer,
     String,
+    select,
+    func,
     delete,
     Float,
     UniqueConstraint,
@@ -24,6 +26,9 @@ from datetime import datetime
 from sqlalchemy import text
 
 from import_utils import *
+from sqlalchemy.orm import sessionmaker
+import traceback
+
 
 load_dotenv()
 
@@ -437,8 +442,12 @@ def cleanup(sig, frame):
 signal.signal(signal.SIGINT, cleanup)
 
 def start(db_engine):
+
+
+    # Assuming 'engine' is your Engine object
     global job_dir, maps_load_dir, engine
     engine = db_engine
+    Session = sessionmaker(bind=engine)
     jobs_dir = os.path.abspath(os.path.join("", "jobs"))
     os.makedirs(jobs_dir, exist_ok=True)
     os.makedirs(os.path.join(jobs_dir, "1"), exist_ok=True)
@@ -492,22 +501,30 @@ def start(db_engine):
              next_id_maps[modelName] = 1
         if action_info.get("empty_first"):
             log_output("Emptying table " + modelName)
+            table = get_table(modelName)
+
+
+            # Assuming 'table' is your Table object
+            # Replace 'ID' with your actual column name
+            with Session() as session:
+                max_id = session.query(func.max(table.columns['ID'])).scalar()
+
+            print("max id found to be "+str(max_id))
             with engine.connect() as connection:
 
                 # Split the deletion into smaller chunks
-                chunk_size = 100000
+                chunk_size = 1000
                 offset = 0
                 while True:
                     try:
-                        connection.execute(
-                            text("DELETE FROM " + modelName.upper() + " LIMIT " + str(chunk_size) + " OFFSET " + str(offset))
-                        )
+                        delete_stmt = table.delete().where(table.c.ID <= max_id - offset).where(table.c.ID > max_id - chunk_size - offset)
+                        connection.execute(delete_stmt)
                         offset += chunk_size
                     except ProgrammingError as e:
                         break
                     except Exception as e:
                         print("error emptying table " + modelName)
-                        print(e)
+                        traceback.print_exc()
                         break
         sorted_files = natsorted(
             [f for f in os.listdir(rootDir + "/" + modelName) if not f.startswith('.')],
