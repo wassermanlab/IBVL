@@ -127,7 +127,7 @@ mts_table = Table(
     Column("VARIANT", Integer, ForeignKey("VARIANTS.ID", ondelete="CASCADE")),
     Column("ID", Integer, primary_key=True),
     Column("POS", Integer),
-    Column("REF", String(1)),
+    Column("REF", String(60)),
     Column("ALT", String(30)),
     Column("UCSC_URL", String(511)),
     Column("MITOMAP_URL", String(511)),
@@ -249,7 +249,6 @@ variants_consequences_table = Table(
     Column("ID", Integer, primary_key=True),
     Column("SEVERITY", Integer, ForeignKey("SEVERITIES.ID", ondelete="CASCADE")),
     Column("VARIANT_TRANSCRIPT", Integer, ForeignKey("VARIANTS_TRANSCRIPTS.ID", ondelete="CASCADE")),
-    UniqueConstraint("VARIANT_TRANSCRIPT", name="VARIANTS_CONSEQUENCES_UNIQUE"),
 )
 
 
