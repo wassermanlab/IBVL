@@ -73,9 +73,11 @@ with engine.connect() as connection:
     table_name = input_name or "GENES"
 
 
-    df = pd.read_sql_query("SELECT * FROM "+table_name, engine)
-    print(df)
-
+    try:
+        df = pd.read_sql_query("SELECT * FROM "+table_name, engine)
+        print(df)
+    except Exception:
+        pass
     check_for_bail("continue to table test? (y/n): ")
 
     metadata = MetaData()
