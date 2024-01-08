@@ -114,7 +114,7 @@ with engine.connect() as connection:
 
 
     try:
-        result = connection.execute(test_table.insert(), [{"SHORT_NAME": "TEST"}])
+        result = connection.execute(test_table.insert(), {"SHORT_NAME": "TEST"})
         print("inserted ")
     except Exception:
         traceback.print_exc()
