@@ -1,5 +1,6 @@
 from sqlalchemy import (
     create_engine,
+    Sequence,
     text,
     event,
     MetaData,
@@ -44,15 +45,15 @@ container = os.environ.get("DB_CONTAINER")
 
 
 print("connecting...")
-if isinstance(container, str) and len(container) > 0:
-    print("hooking into connect event to set container = "+container)
-    def set_container(dbapi_connection, connection_record):
+if isinstance(schema, str) and len(schema) > 0:
+    print("hooking into connect event to set schema = "+schema)
+    def on_connect(dbapi_connection, connection_record):
         cursor = dbapi_connection.cursor()
-        cursor.execute("ALTER SESSION SET CONTAINER = "+container)
+        cursor.execute("ALTER SESSION SET CURRENT_SCHEMA = "+schema)
         cursor.close()
-        print("container was set.")
+        print("schema was set.")
     engine = create_engine(dbConnectionString, echo=True, pool_pre_ping=True, pool_recycle=3600)
-    event.listen(engine, 'connect', set_container)
+    event.listen(engine, 'connect', on_connect)
 else:
     engine = create_engine(dbConnectionString)
 
@@ -81,17 +82,17 @@ with engine.connect() as connection:
     check_for_bail("continue to table test? (y/n): ")
 
     metadata = MetaData()
+#    metadata = MetaData(schema=schema)
 
     print("initializing Table for "+table_name+"...")
 
     if isinstance(schema, str) and len(schema) > 0:
-        print("setting schema = "+schema+"...")
+#        print("setting schema = "+schema+"...")
         test_table = Table(
             table_name,
             metadata,
-            Column("ID", Integer, primary_key=True),
-            Column("SHORT_NAME", String(30), nullable=False),
-            schema=schema,
+            autoload_with=engine,
+#            schema=schema
         )
     else:
         print("no schema provided...")
