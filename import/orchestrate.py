@@ -11,10 +11,9 @@ from sqlalchemy import (
 load_dotenv()
 
 dbConnectionString = os.environ.get("DB")
+verbose = os.environ.get("VERBOSE") == "true" or os.environ.get("VERBOSE") == "True"
 container = os.environ.get("DB_CONTAINER")
 isDevelopment = os.environ.get("ENVIRONMENT") != "production"
-
-db_name = dbConnectionString.split("/")[-1]
 
 if isDevelopment:
     # create the database if it doesn't exist
@@ -27,22 +26,26 @@ if isDevelopment:
         import tables
     engine.dispose()
 
-def set_container(dbapi_connection, connection_record):
-    cursor = dbapi_connection.cursor()
-    cursor.execute("ALTER SESSION SET CONTAINER = "+container)
-    cursor.close()
 
 print("connecting...")
 if isinstance(container, str) and len(container) > 0:
-    engine = create_engine(dbConnectionString, echo=True, pool_pre_ping=True, pool_recycle=3600 )
+    # ORACLE (prod)
+
+    print("hooking into connect event to set container = "+container)
+    def set_container(dbapi_connection, connection_record):
+        cursor = dbapi_connection.cursor()
+        cursor.execute("ALTER SESSION SET CONTAINER = "+container)
+        cursor.close()
+        print("container was set.")
+    engine = create_engine(dbConnectionString, echo=verbose, pool_pre_ping=True, pool_recycle=3600)
     event.listen(engine, 'connect', set_container)
 else:
+    # MYSQL (dev)
     engine = create_engine(
         dbConnectionString,
-        echo=True,
+        echo=verbose,
         pool_pre_ping=True,
-        pool_recycle=3600,
-        connect_args={"autocommit": True},
+        pool_recycle=3600
     )
 start(engine)   
 

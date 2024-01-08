@@ -51,7 +51,7 @@ if isinstance(container, str) and len(container) > 0:
         cursor.execute("ALTER SESSION SET CONTAINER = "+container)
         cursor.close()
         print("container was set.")
-    engine = create_engine(dbConnectionString, echo=True, pool_pre_ping=True, pool_recycle=3600 )
+    engine = create_engine(dbConnectionString, echo=True, pool_pre_ping=True, pool_recycle=3600)
     event.listen(engine, 'connect', set_container)
 else:
     engine = create_engine(dbConnectionString)
@@ -115,6 +115,8 @@ with engine.connect() as connection:
 
     try:
         result = connection.execute(test_table.insert(), {"SHORT_NAME": "TEST"})
+        #commit
+        connection.commit()
         print("inserted ")
     except Exception:
         traceback.print_exc()

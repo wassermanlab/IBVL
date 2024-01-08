@@ -9,6 +9,7 @@ import os
 load_dotenv()
 
 chunk_size = int(os.environ.get("CHUNK_SIZE"))
+verbose = os.environ.get("VERBOSE") == "true" or os.environ.get("VERBOSE") == "True"
 
 def inspectTSV(file):
     total_rows = 0
@@ -63,10 +64,12 @@ def setup_loggers(job_dir):
 
 def log_data_issue(s):
     data_issue_logger.warning(s)
-    #print(s)
+    if (verbose):
+        print(s)
 def log_output(s):
     output_logger.info(s)
-    #print(s)
+    if (verbose):
+        print(s)
 
 
 def report_counts(counts):

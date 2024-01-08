@@ -35,9 +35,10 @@ load_dotenv()
 # get command line arguments
 rootDir = os.environ.get("ORACLE_TABLE_PATH")
 chunk_size = int(os.environ.get("CHUNK_SIZE"))
-verbose = os.environ.get("VERBOSE") == "true"
+#verbose = os.environ.get("VERBOSE") == "true"
 dbConnectionString = os.environ.get("DB")
 copy_maps_from_job = os.environ.get("COPY_MAPS_FROM_JOB")
+isDevelopment = os.environ.get("ENVIRONMENT") != "production"
 
 if rootDir == None:
     print("No root directory specified")
@@ -231,7 +232,6 @@ def get_table(model):
     if model in tables:
         return tables[model]
     else:
-
         schema_name = os.environ.get("SCHEMA_NAME")
         if isinstance(schema_name, str) and len(schema_name) > 0:
             table = Table(model.upper(), metadata, autoload_with=engine, schema=schema_name)
@@ -247,6 +247,7 @@ def inject(model, data, map_key):
     with engine.connect() as connection:
         try:
             result = connection.execute(table.insert(), data)
+            connection.commit()
             pk = result.inserted_primary_key[0]
             append_to_map(model, map_key, pk)
             next_id_maps[model]  = pk + 1
@@ -325,7 +326,7 @@ def import_file(file, file_info, action_info):
                         elif (name == "mts"):
                             var_type = "MT"
                         resolved_pk = inject("variants",{"VARIANT_ID":map_key, "VAR_TYPE": var_type}, map_key)
-            if map_key is not None and verbose:
+            if map_key is not None and False:
                 log_output(
                     "resolved "
                     + fk_model
@@ -367,6 +368,8 @@ def import_file(file, file_info, action_info):
         for chunk in chunks(data_list, chunk_size):
             try:
                 connection.execute(table.insert(), chunk)
+                #commit
+                connection.commit()
                 # chunk worked
                 successful_chunks += 1
                 successCount += len(chunk)
@@ -376,6 +379,7 @@ def import_file(file, file_info, action_info):
                 for row in chunk:
                     try:
                         connection.execute(table.insert(), row)
+                        connection.commit()
                         successCount += 1
 
                     except DataError as e:
@@ -408,7 +412,7 @@ def import_file(file, file_info, action_info):
                     
                     if map_key not in pk_map:
                         pk_map[map_key] = data["ID"]
-                    if verbose:
+                    if False:
                         log_output("added " + name + "." + map_key + " to pk map")
                 for key in pk_map:
                     append_to_map(name, key.upper(), pk_map[key])
@@ -520,11 +524,14 @@ def start(db_engine):
                         delete_stmt = table.delete().where(table.c.ID <= max_id - offset).where(table.c.ID > max_id - chunk_size - offset)
                         connection.execute(delete_stmt)
                         offset += chunk_size
+                        connection.commit()
+#                        print("did delete a chunk")
                     except ProgrammingError as e:
+                        print(e)
                         break
                     except Exception as e:
                         print("error emptying table " + modelName)
-                        traceback.print_exc()
+                        print(e)
                         break
         sorted_files = natsorted(
             [f for f in os.listdir(rootDir + "/" + modelName) if not f.startswith('.')],
