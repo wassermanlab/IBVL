@@ -39,6 +39,7 @@ chunk_size = int(os.environ.get("CHUNK_SIZE"))
 dbConnectionString = os.environ.get("DB")
 copy_maps_from_job = os.environ.get("COPY_MAPS_FROM_JOB")
 isDevelopment = os.environ.get("ENVIRONMENT") != "production"
+schema = os.environ.get("SCHEMA_NAME")
 
 if rootDir == None:
     print("No root directory specified")
@@ -232,9 +233,8 @@ def get_table(model):
     if model in tables:
         return tables[model]
     else:
-        schema_name = os.environ.get("SCHEMA_NAME")
-        if isinstance(schema_name, str) and len(schema_name) > 0:
-            table = Table(model.upper(), metadata, autoload_with=engine, schema=schema_name)
+        if isinstance(schema, str) and len(schema) > 0:
+            table = Table(model, metadata, schema=schema)
         else:
             table = Table(model.upper(), metadata, autoload_with=engine)
         tables[model] = table
@@ -449,8 +449,13 @@ def start(db_engine):
 
 
     # Assuming 'engine' is your Engine object
-    global job_dir, maps_load_dir, engine
+    global job_dir, maps_load_dir, engine, schema
     engine = db_engine
+
+    if isinstance(schema,str) and len(schema) > 0:
+        metadata.reflect(bind=engine, schema=schema)
+    else:
+        metadata.reflect(bind=engine)
     Session = sessionmaker(bind=engine)
     jobs_dir = os.path.abspath(os.path.join("", "jobs"))
     os.makedirs(jobs_dir, exist_ok=True)
