@@ -508,7 +508,7 @@ def start(db_engine):
         #     pk_maps[modelName] = {}
         if modelName not in next_id_maps:
              next_id_maps[modelName] = 1
-        if action_info.get("empty_first"):
+        if action_info.get("empty_first") and isDevelopment:
             log_output("Emptying table " + modelName)
             table = get_table(modelName)
 
