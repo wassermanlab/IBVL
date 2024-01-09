@@ -67,8 +67,8 @@ with engine.connect() as connection:
 
     check_for_bail("continue to read test? (y/n): ")
 
-    input_name = input("enter table name (default: GENES): ")
-    table_name = input_name or "GENES"
+    input_name = input("enter table name (default: genes): ")
+    table_name = input_name or "genes"
 
 
     try:
@@ -86,7 +86,7 @@ with engine.connect() as connection:
             table_name,
             metadata,
 #            autoload_with=engine,
-#            schema=schema
+            schema=schema
         )
     else:
         print("no schema provided...")
@@ -107,9 +107,11 @@ with engine.connect() as connection:
 
     check_for_bail("continue to write table test? (y/n): ")
 
+    n = input("name?")
+
 
     try:
-        result = connection.execute(test_table.insert(), {"SHORT_NAME": "TEST"})
+        result = connection.execute(test_table.insert(), {"SHORT_NAME": n})
         #commit
         connection.commit()
         print("inserted ")
