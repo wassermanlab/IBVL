@@ -346,11 +346,11 @@ def import_file(file, file_info, action_info):
             else:
                 log_data_issue(
                     "Missing "
-                    + fk_col
+                    + fk_col if fk_col is not None else "None"
                     + " "
-                    + map_key
+                    + map_key if map_key is not None else "None"
                     + " referenced from "
-                    + name
+                    + name if name is not None else "None"
                 )
                 if (debug_row is not None):
                     log_data_issue(debug_row)
