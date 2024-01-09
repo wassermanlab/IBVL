@@ -248,12 +248,13 @@ def inject(model, data, map_key):
         try:
             id = next_id_maps[model]
             data["id"] = id
-            result = connection.execute(table.insert(), data)
+            connection.execute(table.insert(), data)
             connection.commit()
 #            pk = result.inserted_primary_key[0]
             append_to_map(model, map_key, id)
             next_id_maps[model]  = id + 1
             log_data_issue(f"dynamically added to {model}: {data}")
+            pk = id
         except IntegrityError as e:
             log_data_issue("a dynamically injected obj had an integrity error.")
             log_data_issue(e)
@@ -391,7 +392,7 @@ def import_file(file, file_info, action_info):
 #                        quit()
                     except IntegrityError as e:
                         msg = str(e)
-                        if "Duplicate" in msg:
+                        if "Duplicate" in msg or "ORA-00001" in msg:
                             duplicateCount += 1
                             successCount += 1
                         else:
