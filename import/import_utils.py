@@ -24,7 +24,7 @@ def inspectTSV(file):
             print("Could not determine separator for " + file)
             quit()
 
-    columns = [col.upper() for col in small_read.values.tolist()[0]]
+    columns = [col.lower() for col in small_read.values.tolist()[0]]
 
     for chunk in pd.read_csv(file, sep="\t", chunksize=chunk_size):
         total_rows += len(chunk)
@@ -39,9 +39,9 @@ def inspectTSV(file):
 
 def readTSV(file, info, dtype={}):
 #    df = pd.read_csv(file, sep=info["separator"], dtype=dtype, na_values=["NA"], keep_default_na=False)
-    df = pd.read_csv(file, sep=info["separator"], dtype=dtype)
+    df = pd.read_csv(file, sep=info["separator"])
     df.rename(columns={"All_info$variant": "variant"}, inplace=True)
-    df.columns = [col.upper() for col in df.columns]
+    df.columns = [col.lower() for col in df.columns]
     return df
 
 def setup_loggers(job_dir):

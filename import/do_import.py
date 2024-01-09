@@ -60,35 +60,35 @@ maps_load_dir = ""
 model_import_actions = {
     "genes": {
         "name": "genes",
-        "pk_lookup_col": "SHORT_NAME",
+        "pk_lookup_col": "short_name",
         "fk_map": {},
         "empty_first": True,
         "filters": {
-            "SHORT_NAME": lambda x: x.upper()
+            "short_name": lambda x: x.upper()
         },
         #"skip":True
     },
     "transcripts": {
         "name": "transcripts",
-        "pk_lookup_col": "TRANSCRIPT_ID",
-        "fk_map": {"GENE": "genes"},
+        "pk_lookup_col": "transcript_id",
+        "fk_map": {"gene": "genes"},
         "empty_first": True,
         "filters": {
-            "TRANSCRIPT_TYPE": lambda x: x.replace("RefSeq", "R"),
+            "transcript_type": lambda x: x.replace("RefSeq", "R"),
         },
         #"skip":True
     },
     "variants": {
         "name": "variants",
-        "pk_lookup_col": "VARIANT_ID",
+        "pk_lookup_col": "variant_id",
         "fk_map": {},
         "empty_first": True,
         #"skip":True
     },
     "variants_transcripts": {
         "name": "variants_transcripts",
-        "pk_lookup_col": ["TRANSCRIPT", "VARIANT"],
-        "fk_map": {"TRANSCRIPT": "transcripts", "VARIANT": "variants"},
+        "pk_lookup_col": ["transcript", "variant"],
+        "fk_map": {"transcript": "transcripts", "variant": "variants"},
         "empty_first": True,
         #"skip":True
     },
@@ -98,7 +98,7 @@ model_import_actions = {
         "fk_map": {"DO_COMPOUND_FK": "for variants_transcripts"},
         "empty_first": True,
         "filters":{
-            "HGVSP": lambda x: x.replace("%3D","=")
+            "hgvsp": lambda x: x.replace("%3D","=")
         },
         #"skip":True
     },
@@ -112,70 +112,70 @@ model_import_actions = {
     "sv_consequences": {
         "name": "sv_consequences",
         "pk_lookup_col": None,
-        "fk_map": {"GENE": "genes", "VARIANT": "variants"},
+        "fk_map": {"gene": "genes", "variant": "variants"},
         "empty_first": True,
         #"skip":True
     },
     "snvs": {
         "name": "snvs",
         "pk_lookup_col": None,
-        "fk_map": {"VARIANT": "variants"},
+        "fk_map": {"variant": "variants"},
         "empty_first": True,
         "filters":{
-            "DBSNP_ID": lambda x: x.split('&')[0] if x is not None else None
+            "dbsnp_id": lambda x: x.split('&')[0] if x is not None else None
         },
         #"skip":True
     },
     "svs": {
         "name": "svs",
         "pk_lookup_col": None,
-        "fk_map": {"VARIANT": "variants"},
+        "fk_map": {"variant": "variants"},
         "empty_first": True,
         #"skip":True
     },
     "svs_ctx": {
         "name": "svs_ctx",
         "pk_lookup_col": None,
-        "fk_map": {"VARIANT": "variants"},
+        "fk_map": {"variant": "variants"},
         "empty_first": True,
         #"skip":True
     },
     "str": {
         "name": "str",
         "pk_lookup_col": None,
-        "fk_map": {"VARIANT": "variants"},
+        "fk_map": {"variant": "variants"},
         "empty_first": True,
         #"skip":True
     },
     "mts": {
         "name": "mts",
         "pk_lookup_col": None,
-        "fk_map": {"VARIANT": "variants"},
+        "fk_map": {"variant": "variants"},
         "empty_first": True,
         #"skip":True
     },
     "genomic_ibvl_frequencies": {
         "name": "genomic_ibvl_frequencies",
         "pk_lookup_col": None,
-        "fk_map": {"VARIANT": "variants"},
+        "fk_map": {"variant": "variants"},
         "empty_first": True,
     },
     "genomic_gnomad_frequencies": {
         "name": "genomic_gnomad_frequencies",
         "pk_lookup_col": None,
-        "fk_map": {"VARIANT": "variants"},
+        "fk_map": {"variant": "variants"},
         "empty_first": True,
     },
     "mt_ibvl_frequencies": {
         "name": "mt_ibvl_frequencies",
         "pk_lookup_col": None,
-        "fk_map": {"VARIANT": "variants"},
+        "fk_map": {"variant": "variants"},
         "empty_first": True,
     },
     "mt_gnomad_frequencies": {
         "name": "mt_gnomad_frequencies",
         "pk_lookup_col": None,
-        "fk_map": {"VARIANT": "variants"},
+        "fk_map": {"variant": "variants"},
         "empty_first": True,
     },
 }
@@ -236,7 +236,7 @@ def get_table(model):
         if isinstance(schema, str) and len(schema) > 0:
             table = Table(model, metadata, schema=schema)
         else:
-            table = Table(model.upper(), metadata, autoload_with=engine)
+            table = Table(model, metadata, autoload_with=engine)
         tables[model] = table
         return table
     
@@ -289,7 +289,7 @@ def import_file(file, file_info, action_info):
     for index, row in df.iterrows():
         data = row.to_dict()
         pk = next_id_maps[name] + index
-        data["ID"] = pk
+        data["id"] = pk
 
         skip = False
         for col, filter in filters.items():
@@ -301,13 +301,13 @@ def import_file(file, file_info, action_info):
             if fk_col == "DO_COMPOUND_FK":
 
                 debug_row = data.copy()
-                v_id = resolve_PK("variants", data["VARIANT"])
-                t_id = resolve_PK("transcripts", data["TRANSCRIPT"])
+                v_id = resolve_PK("variants", data["variant"])
+                t_id = resolve_PK("transcripts", data["transcript"])
                 map_key = "-".join([str(t_id), str(v_id)])
-                del data["VARIANT"]
-                del data["TRANSCRIPT"]
+                del data["variant"]
+                del data["transcript"]
                 resolved_pk = resolve_PK("variants_transcripts", map_key)
-                fk_col = "VARIANT_TRANSCRIPT"
+                fk_col = "variant_transcript"
             else:
                 map_key = data[fk_col].upper()
                 if map_key == "NA":
@@ -315,9 +315,9 @@ def import_file(file, file_info, action_info):
                 else:
                     resolved_pk = resolve_PK(fk_model, map_key)
                     ## resolved PK was not found from maps, so.. if it's a gene, we could dynamically inject
-                    if (resolved_pk == None and fk_col == "GENE" and name == "transcripts"):
-                        resolved_pk = inject("genes",{"SHORT_NAME":map_key}, map_key)
-                    elif (resolved_pk == None and fk_col == "VARIANT" and name in ["sv_consequences", "svs", "snvs", "mts"]):
+                    if (resolved_pk == None and fk_col == "gene" and name == "transcripts"):
+                        resolved_pk = inject("genes",{"short_name":map_key}, map_key)
+                    elif (resolved_pk == None and fk_col == "variant" and name in ["sv_consequences", "svs", "snvs", "mts"]):
                         
                         if (name == "sv_consequences" or name == "svs"):
                             var_type = "SV"
@@ -325,7 +325,7 @@ def import_file(file, file_info, action_info):
                             var_type = "SNV"
                         elif (name == "mts"):
                             var_type = "MT"
-                        resolved_pk = inject("variants",{"VARIANT_ID":map_key, "VAR_TYPE": var_type}, map_key)
+                        resolved_pk = inject("variants",{"variant_id":map_key, "var_type": var_type}, map_key)
             if map_key is not None and False:
                 log_output(
                     "resolved "
@@ -411,7 +411,7 @@ def import_file(file, file_info, action_info):
                         map_key = data[pk_lookup_col].upper()
                     
                     if map_key not in pk_map:
-                        pk_map[map_key] = data["ID"]
+                        pk_map[map_key] = data["id"]
                     if False:
                         log_output("added " + name + "." + map_key + " to pk map")
                 for key in pk_map:
@@ -508,7 +508,7 @@ def start(db_engine):
         #     pk_maps[modelName] = {}
         if modelName not in next_id_maps:
              next_id_maps[modelName] = 1
-        if action_info.get("empty_first") and isDevelopment:
+        if action_info.get("empty_first") and isDevelopment and False:
             log_output("Emptying table " + modelName)
             table = get_table(modelName)
 
@@ -516,7 +516,7 @@ def start(db_engine):
             # Assuming 'table' is your Table object
             # Replace 'ID' with your actual column name
             with Session() as session:
-                max_id = session.query(func.max(table.columns['ID'])).scalar()
+                max_id = session.query(func.max(table.columns['id'])).scalar()
 
             print("max id found to be "+str(max_id))
             with engine.connect() as connection:
@@ -526,7 +526,7 @@ def start(db_engine):
                 offset = 0
                 while True:
                     try:
-                        delete_stmt = table.delete().where(table.c.ID <= max_id - offset).where(table.c.ID > max_id - chunk_size - offset)
+                        delete_stmt = table.delete().where(table.c.id <= max_id - offset).where(table.c.id > max_id - chunk_size - offset)
                         connection.execute(delete_stmt)
                         offset += chunk_size
                         connection.commit()

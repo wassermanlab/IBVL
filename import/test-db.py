@@ -65,17 +65,6 @@ with engine.connect() as connection:
 
     print("reflected tables:" + str(metadata.sorted_tables))
 
-    check_for_bail("continue to read test? (y/n): ")
-
-    input_name = input("enter table name (default: genes): ")
-    table_name = input_name or "genes"
-
-
-    try:
-        df = pd.read_sql_query("SELECT * FROM "+table_name, engine)
-        print(df)
-    except Exception:
-        pass
     check_for_bail("continue to table test? (y/n): ")
 
     print("initializing Table for "+table_name+"...")
@@ -111,7 +100,7 @@ with engine.connect() as connection:
 
 
     try:
-        result = connection.execute(test_table.insert(), {"SHORT_NAME": n})
+        result = connection.execute(test_table.insert(), {"short_name": n})
         #commit
         connection.commit()
         print("inserted ")
