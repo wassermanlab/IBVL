@@ -64,7 +64,7 @@ model_import_actions = {
         "fk_map": {},
         "empty_first": True,
         "filters": {
-            "short_name": lambda x: x.upper()
+            "short_name": lambda x: x.upper() if x is not None else None
         },
         #"skip":True
     },
@@ -74,7 +74,7 @@ model_import_actions = {
         "fk_map": {"gene": "genes"},
         "empty_first": True,
         "filters": {
-            "transcript_type": lambda x: x.replace("RefSeq", "R"),
+            "transcript_type": lambda x: x.replace("RefSeq", "R") if x is not None else None,
         },
         #"skip":True
     },
@@ -98,7 +98,7 @@ model_import_actions = {
         "fk_map": {"DO_COMPOUND_FK": "for variants_transcripts"},
         "empty_first": True,
         "filters":{
-            "hgvsp": lambda x: x.replace("%3D","=")
+            "hgvsp": lambda x: x.replace("%3D","=") if x is not None else None
         },
         #"skip":True
     },
@@ -222,6 +222,8 @@ def persist_and_unload_maps():
     log_output("cleared the pk maps")
 
 def resolve_PK(referencedModel, name):
+    if name is None:
+        return None
     try:
         result = pk_maps[referencedModel][name.upper()]
         return result
@@ -312,7 +314,8 @@ def import_file(file, file_info, action_info):
                 resolved_pk = resolve_PK("variants_transcripts", map_key)
                 fk_col = "variant_transcript"
             else:
-                map_key = data[fk_col].upper()
+                if isinstance(data[fk_col], str):
+                    map_key = data[fk_col].upper()
                 if map_key == "NA":
                     data[fk_col] = None
                 else:
@@ -411,8 +414,8 @@ def import_file(file, file_info, action_info):
 #                        log_output(pk_lookup_col)
 #                        log_output(data)
                         map_key = "-".join([str(data[col]) for col in pk_lookup_col])
-                    elif isinstance(pk_lookup_col, str):
-                        map_key = data[pk_lookup_col].upper()
+                    elif isinstance(pk_lookup_col, str) and isinstance(data[pk_lookup_col], str):
+                        map_key = data[pk_lookup_col]
                     
                     if map_key not in pk_map:
                         pk_map[map_key] = data["id"]
