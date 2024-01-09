@@ -45,17 +45,8 @@ container = os.environ.get("DB_CONTAINER")
 
 
 print("connecting...")
-if isinstance(schema, str) and len(schema) > 0:
-    print("hooking into connect event to set schema = "+schema)
-    def on_connect(dbapi_connection, connection_record):
-        cursor = dbapi_connection.cursor()
-        cursor.execute("ALTER SESSION SET CURRENT_SCHEMA = "+schema)
-        cursor.close()
-        print("schema was set.")
-    engine = create_engine(dbConnectionString, echo=True, pool_pre_ping=True, pool_recycle=3600)
-    event.listen(engine, 'connect', on_connect)
-else:
-    engine = create_engine(dbConnectionString)
+
+engine = create_engine(dbConnectionString, echo=True, pool_pre_ping=True, pool_recycle=3600)
 
 def check_for_bail(question):
     doContinue = input(question)
@@ -66,7 +57,13 @@ def check_for_bail(question):
 
 with engine.connect() as connection:
 
-    print("looks like connecting worked")
+    print("looks like connecting worked. will try to reflect ")
+
+    metadata = MetaData()
+
+    metadata.reflect(bind=engine, schema=schema)
+
+    print("reflected tables:" + str(metadata.sorted_tables))
 
     check_for_bail("continue to read test? (y/n): ")
 
@@ -81,9 +78,6 @@ with engine.connect() as connection:
         pass
     check_for_bail("continue to table test? (y/n): ")
 
-    metadata = MetaData()
-#    metadata = MetaData(schema=schema)
-
     print("initializing Table for "+table_name+"...")
 
     if isinstance(schema, str) and len(schema) > 0:
@@ -91,7 +85,7 @@ with engine.connect() as connection:
         test_table = Table(
             table_name,
             metadata,
-            autoload_with=engine,
+#            autoload_with=engine,
 #            schema=schema
         )
     else:
