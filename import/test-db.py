@@ -67,6 +67,8 @@ with engine.connect() as connection:
 
     check_for_bail("continue to table test? (y/n): ")
 
+    table_name = 'genes'
+
     print("initializing Table for "+table_name+"...")
 
     if isinstance(schema, str) and len(schema) > 0:
