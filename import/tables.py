@@ -34,247 +34,248 @@ else:
 
 metadata = MetaData()
 
-# Define the "GENES" table
+# Define the "genes" table
 genes_table = Table(
-    "GENES",
+    "genes",
     metadata,
-    Column("ID", Integer, primary_key=True),
-    Column("SHORT_NAME", String(30), nullable=False),
-    UniqueConstraint("SHORT_NAME", name="UNIQUE"),
+    Column("id", Integer, primary_key=True),
+    Column("short_name", String(30), nullable=False),
+    UniqueConstraint("short_name", name="unique"),
 )
 
 
 transcripts_table = Table(
-    "TRANSCRIPTS",
+    "transcripts",
     metadata,
-    Column("TRANSCRIPT_ID", String(255)),
-    Column("ID", Integer, primary_key=True),
-    Column("GENE", Integer, ForeignKey("GENES.ID", ondelete="CASCADE")),
-    Column("TRANSCRIPT_TYPE", String(1)),
-    Column("TSL", String(255)),
-    UniqueConstraint("TRANSCRIPT_ID", name="TRANSCRIPTS_UNIQUE"),
-#    ForeignKey("GENE", name="TRANSCRIPTS_GENES_FK", ondelete="CASCADE", table="GENES"),
+    Column("transcript_id", String(255)),
+    Column("id", Integer, primary_key=True),
+    Column("gene", Integer, ForeignKey("genes.id", ondelete="CASCADE")),
+    Column("transcript_type", String(1)),
+    Column("tsl", String(255)),
+    UniqueConstraint("transcript_id", name="transcripts_unique"),
+#    ForeignKey("gene", name="transcripts_genes_fk", ondelete="CASCADE", table="genes"),
 )
 
-# Define the "GENOMIC_GNOMAD_FREQUENCIES" table
+# Define the "genomic_gnomad_frequencies" table
 genomic_gnomad_frequencies_table = Table(
-    "GENOMIC_GNOMAD_FREQUENCIES",
+    "genomic_gnomad_frequencies",
     metadata,
-    Column("ID", Integer, primary_key=True),
-    Column("VARIANT", Integer, ForeignKey("VARIANTS.ID", ondelete="CASCADE")),
-    Column("AF_TOT", Float),
-    Column("AC_TOT", Integer),
-    Column("AN_TOT", Integer),
-    Column("HOM_TOT", Integer),
-    UniqueConstraint("VARIANT", name="GENO_GNOMAD_FREQ_UNIQUE"),
+    Column("id", Integer, primary_key=True),
+    Column("variant", Integer, ForeignKey("variants.id", ondelete="CASCADE")),
+    Column("af_tot", Float),
+    Column("ac_tot", Integer),
+    Column("an_tot", Integer),
+    Column("hom_tot", Integer),
+    UniqueConstraint("variant", name="geno_gnomad_freq_unique"),
 )
 
-# Define the "GENOMIC_IBVL_FREQUENCIES" table
+# Define the "genomic_ibvl_frequencies" table
 genomic_ibvl_frequencies_table = Table(
-    "GENOMIC_IBVL_FREQUENCIES",
+    "genomic_ibvl_frequencies",
     metadata,
-    Column("ID", Integer, primary_key=True),
-    Column("VARIANT", Integer, ForeignKey("VARIANTS.ID", ondelete="CASCADE")),
-    Column("AF_TOT", Float),
-    Column("AF_XX", Float),
-    Column("AF_XY", Float),
-    Column("AC_TOT", Integer),
-    Column("AC_XX", Integer),
-    Column("AC_XY", Integer),
-    Column("AN_TOT", Integer),
-    Column("AN_XX", Integer),
-    Column("AN_XY", Integer),
-    Column("HOM_TOT", Integer),
-    Column("HOM_XX", Integer),
-    Column("HOM_XY", Integer),
-    Column("QUALITY", Integer),
-    UniqueConstraint("VARIANT", name="GENO_IBVL_FREQ_UNIQUE")
+    Column("id", Integer, primary_key=True),
+    Column("variant", Integer, ForeignKey("variants.id", ondelete="CASCADE")),
+    Column("af_tot", Float),
+    Column("af_xx", Float),
+    Column("af_xy", Float),
+    Column("ac_tot", Integer),
+    Column("ac_xx", Integer),
+    Column("ac_xy", Integer),
+    Column("an_tot", Integer),
+    Column("an_xx", Integer),
+    Column("an_xy", Integer),
+    Column("hom_tot", Integer),
+    Column("hom_xx", Integer),
+    Column("hom_xy", Integer),
+    Column("quality", Integer),
+    UniqueConstraint("variant", name="geno_ibvl_freq_unique")
 )
 
 mt_gnomad_frequencies_table = Table(
-    "MT_GNOMAD_FREQUENCIES",
+    "mt_gnomad_frequencies",
     metadata,
-    Column("ID", Integer, primary_key=True),
-    Column("VARIANT", Integer, ForeignKey("VARIANTS.ID", ondelete="CASCADE")),
-    Column("AN", Integer),
-    Column("AC_HOM", Integer),
-    Column("AC_HET", Integer),
-    Column("AF_HOM", Float),
-    Column("AF_HET", Float),
-    Column("MAX_HL", Integer),
-    UniqueConstraint("VARIANT", name="MT_GNOMAD_FREQ_UNIQUE")
+    Column("id", Integer, primary_key=True),
+    Column("variant", Integer, ForeignKey("variants.id", ondelete="CASCADE")),
+    Column("an", Integer),
+    Column("ac_hom", Integer),
+    Column("ac_het", Integer),
+    Column("af_hom", Float),
+    Column("af_het", Float),
+    Column("max_hl", Integer),
+    UniqueConstraint("variant", name="mt_gnomad_freq_unique")
 )
 
 mt_ibvl_frequencies_table = Table(
-    "MT_IBVL_FREQUENCIES",
+    "mt_ibvl_frequencies",
     metadata,
-    Column("ID", Integer, primary_key=True),
-    Column("VARIANT", Integer, ForeignKey("VARIANTS.ID", ondelete="CASCADE")),
-    Column("AN", Integer),
-    Column("AC_HOM", Integer),
-    Column("AC_HET", Integer),
-    Column("AF_HOM", Float),
-    Column("AF_HET", Float),
-    Column("HL_HIST", String(30)),
-    Column("MAX_HL", Integer),
-    UniqueConstraint("VARIANT", name="MT_IBVL_FREQ_UNIQUE"),
+    Column("id", Integer, primary_key=True),
+    Column("variant", Integer, ForeignKey("variants.id", ondelete="CASCADE")),
+    Column("an", Integer),
+    Column("ac_hom", Integer),
+    Column("ac_het", Integer),
+    Column("af_hom", Float),
+    Column("af_het", Float),
+    Column("hl_hist", String(30)),
+    Column("max_hl", Integer),
+    UniqueConstraint("variant", name="mt_ibvl_freq_unique"),
 )
 
 
 mts_table = Table(
-    "MTS",
+    "mts",
     metadata,
-    Column("VARIANT", Integer, ForeignKey("VARIANTS.ID", ondelete="CASCADE")),
-    Column("ID", Integer, primary_key=True),
-    Column("POS", Integer),
-    Column("REF", String(60)),
-    Column("ALT", String(30)),
-    Column("UCSC_URL", String(511)),
-    Column("MITOMAP_URL", String(511)),
-    Column("GNOMAD_URL", String(511)),
-    Column("DBSNP_ID", String(30)),
-    Column("DBSNP_URL", String(511)),
-    Column("CLINVAR_URL", String(511)),
-    Column("CLINVAR_VCV", Integer),
-    UniqueConstraint("VARIANT", name="MTS_UNIQUE"),
+    Column("variant", Integer, ForeignKey("variants.id", ondelete="CASCADE")),
+    Column("id", Integer, primary_key=True),
+    Column("pos", Integer),
+    Column("ref", String(60)),
+    Column("alt", String(30)),
+    Column("ucsc_url", String(511)),
+    Column("mitomap_url", String(511)),
+    Column("gnomad_url", String(511)),
+    Column("dbsnp_id", String(30)),
+    Column("dbsnp_url", String(511)),
+    Column("clinvar_url", String(511)),
+    Column("clinvar_vcv", Integer),
+    UniqueConstraint("variant", name="mts_unique"),
 )
 
 snvs_table = Table(
-    "SNVS",
+    "snvs",
     metadata,
-    Column("VARIANT", Integer, ForeignKey("VARIANTS.ID", ondelete="CASCADE")),
-    Column("ID", Integer, primary_key=True),
-    Column("TYPE", String(30)),
-    Column("LENGTH", Integer),
-    Column("CHR", String(2)),
-    Column("POS", Integer),
-    Column("REF", String(255)),
-    Column("ALT", String(255)),
-    Column("CADD_INTR", String(255)),
-    Column("CADD_SCORE", Integer),
-    Column("DBSNP_ID", String(30)),
-    Column("DBSNP_URL", String(511)),
-    Column("UCSC_URL", String(511)),
-    Column("ENSEMBL_URL", String(511)),
-    Column("CLINVAR_VCV", Integer),
-    Column("CLINVAR_URL", String(511)),
-    Column("GNOMAD_URL", String(511)),
-    Column("SPLICE_AI", Integer),
-    UniqueConstraint("VARIANT", name="SNVS_UNIQUE")
+    Column("variant", Integer, ForeignKey("variants.id", ondelete="CASCADE")),
+    Column("id", Integer, primary_key=True),
+    Column("type", String(30)),
+    Column("length", Integer),
+    Column("chr", String(2)),
+    Column("pos", Integer),
+    Column("ref", String(255)),
+    Column("alt", String(255)),
+    Column("cadd_intr", String(255)),
+    Column("cadd_score", Integer),
+    Column("dbsnp_id", String(30)),
+    Column("dbsnp_url", String(511)),
+    Column("ucsc_url", String(511)),
+    Column("ensembl_url", String(511)),
+    Column("clinvar_vcv", Integer),
+    Column("clinvar_url", String(511)),
+    Column("gnomad_url", String(511)),
+    Column("splice_ai", Integer),
+    UniqueConstraint("variant", name="snvs_unique")
 )
 
-# Define the "STR" table
+# Define the "str" table
 str_table = Table(
-    "STR",
+    "str",
     metadata,
-    Column("VARIANT", Integer, ForeignKey("VARIANTS.ID", ondelete="CASCADE")),
-    Column("ID", Integer, primary_key=True),
-    Column("REPEAT_UNIT", String(20)),
-    Column("MIN_N_REPEAT", Integer),
-    Column("MAX_N_REPEAT", Integer),
-    Column("ALLELE_DISTRIB", String(255)),
-    Column("REFERENCE_REGION", String(40)),
-    UniqueConstraint("VARIANT", name="STR_UNIQUE")
+    Column("variant", Integer, ForeignKey("variants.id", ondelete="CASCADE")),
+    Column("id", Integer, primary_key=True),
+    Column("repeat_unit", String(20)),
+    Column("min_n_repeat", Integer),
+    Column("max_n_repeat", Integer),
+    Column("allele_distrib", String(255)),
+    Column("reference_region", String(40)),
+    UniqueConstraint("variant", name="str_unique")
 )
 
-# Define the "SV_CONSEQUENCES" table
+# Define the "sv_consequences" table
 sv_consequences_table = Table(
-    "SV_CONSEQUENCES",
+    "sv_consequences",
     metadata,
-    Column("ID", Integer, primary_key=True),
-    Column("GENE", Integer, ForeignKey("GENES.ID", ondelete="CASCADE")),
-    Column("VARIANT", Integer, ForeignKey("VARIANTS.ID", ondelete="CASCADE")),
-    Column("CONSEQUENCE", String(255)),
-    UniqueConstraint("VARIANT", name="SV_CONSEQUENCES_UNIQUE")
+    Column("id", Integer, primary_key=True),
+    Column("gene", Integer, ForeignKey("genes.id", ondelete="CASCADE")),
+    Column("variant", Integer, ForeignKey("variants.id", ondelete="CASCADE")),
+    Column("consequence", String(255)),
+    UniqueConstraint("variant", name="sv_consequences_unique")
 )
 
 svs_table = Table(
-    "SVS",
+    "svs",
     metadata,
-    Column("VARIANT", Integer, ForeignKey("VARIANTS.ID", ondelete="CASCADE")),
-    Column("ID", Integer, primary_key=True),
-    Column("CHR1", String(2)),
-    Column("CHR1_POS1", Integer),
-    Column("CHR1_POS2", Integer),
-    Column("SV_TYPE", String(30)),
-    Column("SV_LENGTH", Integer),
-    Column("ALGORITHM", String(30)),
-    Column("UCSC_URL", String(511)),
-    Column("GNOMAD_ID", String(30)),
-    Column("GNOMAD_URL", String(511)),
-    UniqueConstraint("VARIANT", name="SVS_UNIQUE"),
-#    ForeignKey("VARIANT", name="SVS_FK", ondelete="CASCADE", table="VARIANTS"),
+    Column("variant", Integer, ForeignKey("variants.id", ondelete="CASCADE")),
+    Column("id", Integer, primary_key=True),
+    Column("chr1", String(2)),
+    Column("chr1_pos1", Integer),
+    Column("chr1_pos2", Integer),
+    Column("sv_type", String(30)),
+    Column("sv_length", Integer),
+    Column("algorithm", String(30)),
+    Column("ucsc_url", String(511)),
+    Column("gnomad_id", String(30)),
+    Column("gnomad_url", String(511)),
+    UniqueConstraint("variant", name="svs_unique"),
+#    ForeignKey("variant", name="svs_fk", ondelete="CASCADE", table="variants"),
 )
 
 svs_ctx_table = Table(
-    "SVS_CTX",
+    "svs_ctx",
     metadata,
-    Column("VARIANT", Integer, ForeignKey("VARIANTS.ID", ondelete="CASCADE")),
-    Column("ID", Integer, primary_key=True),
-    Column("CHR2", String(2)),
-    Column("CHR2_POS1", Integer),
-    Column("UCSC_URL2", String(511)),
-    Column("GNOMAD_ID2", String(30)),
-    Column("GNOMAD_URL2", String(511)),
-    UniqueConstraint("VARIANT", name="SVS_CTX_UNIQUE"),
-#    ForeignKey("VARIANT", name="SVS_CTX_FK", ondelete="CASCADE", table="VARIANTS"),
+    Column("variant", Integer, ForeignKey("variants.id", ondelete="CASCADE")),
+    Column("id", Integer, primary_key=True),
+    Column("chr2", String(2)),
+    Column("chr2_pos1", Integer),
+    Column("ucsc_url2", String(511)),
+    Column("gnomad_id2", String(30)),
+    Column("gnomad_url2", String(511)),
+    UniqueConstraint("variant", name="svs_ctx_unique"),
+#    ForeignKey("variant", name="svs_ctx_fk", ondelete="CASCADE", table="variants"),
 )
 
 
 variants_table = Table(
-    "VARIANTS",
+    "variants",
     metadata,
-    Column("VARIANT_ID", String(255)),
-    Column("ID", Integer, primary_key=True),
-    Column("VAR_TYPE", String(30)),
-    UniqueConstraint("VARIANT_ID", name="VARIANTS_UNIQUE"),
+    Column("variant_id", String(255)),
+    Column("id", Integer, primary_key=True),
+    Column("var_type", String(30)),
+    UniqueConstraint("variant_id", name="variants_unique"),
 )
 
 variants_annotations_table = Table(
-    "VARIANTS_ANNOTATIONS",
+    "variants_annotations",
     metadata,
-    Column("ID", Integer, primary_key=True),
-    Column("HGVSP", String(255)),
-    Column("POLYPHEN", String(255)),
-    Column("SIFT", String(255)),
-    Column("VARIANT_TRANSCRIPT", Integer, ForeignKey("VARIANTS_TRANSCRIPTS.ID", ondelete="CASCADE")),
-    UniqueConstraint("VARIANT_TRANSCRIPT", name="VARIANTS_ANNOTATIONS_UNIQUE"),
+    Column("id", Integer, primary_key=True),
+    Column("hgvsp", String(255)),
+    Column("polyphen", String(255)),
+    Column("sift", String(255)),
+    Column("variant_transcript", Integer, ForeignKey("variants_transcripts.id", ondelete="CASCADE")),
+    UniqueConstraint("variant_transcript", name="variants_annotations_unique"),
 )
 # ... (Previous code)
 
-# Define the "VARIANTS_CONSEQUENCES" table
+# Define the "variants_consequences" table
 variants_consequences_table = Table(
-    "VARIANTS_CONSEQUENCES",
+    "variants_consequences",
     metadata,
-    Column("ID", Integer, primary_key=True),
-    Column("SEVERITY", Integer, ForeignKey("SEVERITIES.ID", ondelete="CASCADE")),
-    Column("VARIANT_TRANSCRIPT", Integer, ForeignKey("VARIANTS_TRANSCRIPTS.ID", ondelete="CASCADE")),
+    Column("id", Integer, primary_key=True),
+    Column("severity", Integer, ForeignKey("severities.id", ondelete="CASCADE")),
+    Column("variant_transcript", Integer, ForeignKey("variants_transcripts.id", ondelete="CASCADE")),
 )
 
 
 variants_transcripts_table = Table(
-    "VARIANTS_TRANSCRIPTS",
+    "variants_transcripts",
     metadata,
-    Column("TRANSCRIPT", Integer, ForeignKey("TRANSCRIPTS.ID", ondelete="CASCADE")),
-    Column("ID", Integer, primary_key=True),
-    Column("VARIANT", Integer, ForeignKey("VARIANTS.ID", ondelete="CASCADE")),
-    Column("HGVSC", String(255)),
-    UniqueConstraint("TRANSCRIPT", "VARIANT", name="VARIANTS_TRANSCRIPTS_UNIQUE"),
+    Column("transcript", Integer, ForeignKey("transcripts.id", ondelete="CASCADE")),
+    Column("id", Integer, primary_key=True),
+    Column("variant", Integer, ForeignKey("variants.id", ondelete="CASCADE")),
+    Column("hgvsc", String(255)),
+    UniqueConstraint("transcript", "variant", name="variants_transcripts_unique"),
 )
 
 severities_table = Table(
-    "SEVERITIES",
+    "severities",
     metadata,
-    Column("SEVERITY_NUMBER", Integer),
-    Column("ID", Integer, primary_key=True),
-    Column("CONSEQUENCE", String(255)),
-    UniqueConstraint("SEVERITY_NUMBER", name="SEVERITIES_UNIQUE"),
+    Column("severity_number", Integer),
+    Column("id", Integer, primary_key=True),
+    Column("consequence", String(255)),
+    UniqueConstraint("severity_number", name="severities_unique"),
 )
 
 metadata.create_all(engine)
 
-severities_sql = "INSERT INTO `SEVERITIES` (`SEVERITY_NUMBER`, `ID`, `CONSEQUENCE`) VALUES(1, 1, 'transcript_ablation'),(2, 2, 'splice_acceptor_variant'),(3, 3, 'splice_donor_variant'),(4, 4, 'stop_gained'),(5, 5, 'frameshift_variant'),(6, 6, 'stop_lost'),(7, 7, 'start_lost'),(8, 8, 'transcript_amplification'),(9, 9, 'inframe_insertion'),(10, 10, 'inframe_deletion'),(11, 11, 'missense_variant'),(12, 12, 'protein_altering_variant'),(13, 13, 'regulatory_region_ablation'),(14, 14, 'splice_region_variant'),(15, 15, 'incomplete_terminal_codon_variant'),(16, 16, 'start_retained_variant'),(17, 17, 'stop_retained_variant'),(18, 18, 'synonymous_variant'),(19, 19, 'coding_sequence_variant'),(20, 20, 'mature_miRNA_variant'),(21, 21, '5_prime_UTR_variant'),(22, 22, '3_prime_UTR_variant'),(23, 23, 'non_coding_transcript_exon_variant'),(24, 24, 'intron_variant'),(25, 25, 'NMD_transcript_variant'),(26, 26, 'non_coding_transcript_variant'),(27, 27, 'upstream_gene_variant'),(28, 28, 'downstream_gene_variant'),(29, 29, 'TFBS_ablation'),(30, 30, 'TFBS_amplification'),(31, 31, 'TF_binding_site_variant'),(32, 32, 'regulatory_region_amplification'),(33, 33, 'feature_elongation'),(34, 34, 'regulatory_region_variant'),(35, 35, 'feature_truncation'),(36, 36, 'intergenic_variant');"
-
+severities_sql = "INSERT INTO `severities` (`severity_number`, `id`, `consequence`) VALUES(1, 1, 'transcript_ablation'),(2, 2, 'splice_acceptor_variant'),(3, 3, 'splice_donor_variant'),(4, 4, 'stop_gained'),(5, 5, 'frameshift_variant'),(6, 6, 'stop_lost'),(7, 7, 'start_lost'),(8, 8, 'transcript_amplification'),(9, 9, 'inframe_insertion'),(10, 10, 'inframe_deletion'),(11, 11, 'missense_variant'),(12, 12, 'protein_altering_variant'),(13, 13, 'regulatory_region_ablation'),(14, 14, 'splice_region_variant'),(15, 15, 'incomplete_terminal_codon_variant'),(16, 16, 'start_retained_variant'),(17, 17, 'stop_retained_variant'),(18, 18, 'synonymous_variant'),(19, 19, 'coding_sequence_variant'),(20, 20, 'mature_miRNA_variant'),(21, 21, '5_prime_UTR_variant'),(22, 22, '3_prime_UTR_variant'),(23, 23, 'non_coding_transcript_exon_variant'),(24, 24, 'intron_variant'),(25, 25, 'NMD_transcript_variant'),(26, 26, 'non_coding_transcript_variant'),(27, 27, 'upstream_gene_variant'),(28, 28, 'downstream_gene_variant'),(29, 29, 'TFBS_ablation'),(30, 30, 'TFBS_amplification'),(31, 31, 'TF_binding_site_variant'),(32, 32, 'regulatory_region_amplification'),(33, 33, 'feature_elongation'),(34, 34, 'regulatory_region_variant'),(35, 35, 'feature_truncation'),(36, 36, 'intergenic_variant');"
+severities_sql_oracle = "INSERT INTO "
 # insert into engine
 with engine.connect() as connection:
     connection.execute(text(severities_sql))
+

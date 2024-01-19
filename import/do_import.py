@@ -501,8 +501,8 @@ def start(db_engine):
         model_counts["duplicate"] = 0
         model_counts["successful_chunks"] = 0
         model_counts["fail_chunks"] = 0
-
-        if action_info.get("skip"):
+        model_directory = rootDir + "/" + modelName
+        if action_info.get("skip") or not os.path.isdir(model_directory):
             continue
 
         referenced_models = action_info.get("fk_map").values()
@@ -546,11 +546,11 @@ def start(db_engine):
                         print(e)
                         break
         sorted_files = natsorted(
-            [f for f in os.listdir(rootDir + "/" + modelName) if not f.startswith('.')],
+            [f for f in os.listdir(model_directory) if not f.startswith('.')],
         )
         for file in sorted_files:
             if file.endswith(".tsv"):
-                targetFile = rootDir + "/" + modelName + "/" + file
+                targetFile = model_directory + "/" + file
                 file_info = inspectTSV(targetFile)
                 log_output(
                     "\nimporting "
