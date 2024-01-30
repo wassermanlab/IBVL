@@ -16,7 +16,7 @@ isDevelopment = os.environ.get("ENVIRONMENT") != "production"
 
 if isDevelopment:
     # create the database if it doesn't exist
-    engine = create_engine(dbConnectionString, echo=verbose)
+    engine = create_engine(dbConnectionString, echo=False)
     if database_exists(engine.url):
         #assume already has structure
         pass
@@ -27,7 +27,7 @@ if isDevelopment:
 
 
 print("connecting...")
-engine = create_engine(dbConnectionString, echo=verbose, pool_pre_ping=True, pool_recycle=3600)
+engine = create_engine(dbConnectionString, echo=False, pool_pre_ping=True, pool_recycle=3600)
 
 start(engine)   
 

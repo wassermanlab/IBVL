@@ -40,6 +40,8 @@ dbConnectionString = os.environ.get("DB")
 copy_maps_from_job = os.environ.get("COPY_MAPS_FROM_JOB")
 isDevelopment = os.environ.get("ENVIRONMENT") != "production"
 schema = os.environ.get("SCHEMA_NAME")
+start_at_model = os.environ.get("START_AT_MODEL") if os.environ.get("START_AT_MODEL") != "" else None
+start_at_file = os.environ.get("START_AT_FILE") if os.environ.get("START_AT_FILE") != "" else None
 
 if rootDir == None:
     print("No root directory specified")
@@ -454,7 +456,8 @@ signal.signal(signal.SIGINT, cleanup)
 
 def start(db_engine):
 
-
+    arrived_at_start_model = False
+    arrived_at_start_file = False
     # Assuming 'engine' is your Engine object
     global job_dir, maps_load_dir, engine, schema
     engine = db_engine
@@ -502,7 +505,17 @@ def start(db_engine):
         model_counts["successful_chunks"] = 0
         model_counts["fail_chunks"] = 0
         model_directory = rootDir + "/" + modelName
+
+
+        if isinstance(start_at_model, str) and modelName != start_at_model and not arrived_at_start_model:
+            log_output("Skipping " + modelName +", until "+start_at_model)
+            continue
+
+        if isinstance(start_at_model, str) and modelName == start_at_model:
+            arrived_at_start_model = True
+
         if action_info.get("skip") or not os.path.isdir(model_directory):
+            log_output("Skipping " + modelName)
             continue
 
         referenced_models = action_info.get("fk_map").values()
@@ -548,8 +561,15 @@ def start(db_engine):
         sorted_files = natsorted(
             [f for f in os.listdir(model_directory) if not f.startswith('.')],
         )
+
         for file in sorted_files:
             if file.endswith(".tsv"):
+
+                if isinstance(start_at_file, str) and file != start_at_file and not arrived_at_start_file:
+                    log_output("Skipping " + file +", until "+start_at_file)
+                    continue
+                if isinstance(start_at_file, str) and file == start_at_file:
+                    arrived_at_start_file = True
                 targetFile = model_directory + "/" + file
                 file_info = inspectTSV(targetFile)
                 log_output(
