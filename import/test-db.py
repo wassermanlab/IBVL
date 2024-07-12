@@ -25,7 +25,7 @@ import oracledb
 load_dotenv()
 
 # get command line arguments
-rootDir = os.environ.get("ORACLE_TABLE_PATH")
+rootDir = os.environ.get("PIPELINE_OUTPUT_PATH")
 chunk_size = int(os.environ.get("CHUNK_SIZE"))
 instant_client = os.environ.get("ORACLE_INSTANT_CLIENT_PATH")
 oracle_wallet = os.environ.get("ORACLE_WALLET_PATH")

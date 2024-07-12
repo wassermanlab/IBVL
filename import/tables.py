@@ -21,7 +21,7 @@ from datetime import datetime
 load_dotenv()
 
 # get command line arguments
-rootDir = os.environ.get("ORACLE_TABLE_PATH")
+rootDir = os.environ.get("PIPELINE_OUTPUT_PATH")
 chunk_size = int(os.environ.get("CHUNK_SIZE"))
 verbose = os.environ.get("VERBOSE") == "true"
 dbConnectionString = os.environ.get("DB")
