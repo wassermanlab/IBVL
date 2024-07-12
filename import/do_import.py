@@ -18,7 +18,7 @@ from datetime import datetime
 from sqlalchemy.orm import sessionmaker
 from dotenv import load_dotenv
 
-from .import_utils import *
+from import_utils import *
 
 
 load_dotenv()
