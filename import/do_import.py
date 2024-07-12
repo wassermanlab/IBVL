@@ -25,19 +25,25 @@ load_dotenv()
 
 # get command line arguments
 rootDir = os.environ.get("PIPELINE_OUTPUT_PATH")
-dir_containing_jobs = os.environ.get("JOBS_PATH") if os.environ.get("JOBS_PATH") != "" else "/jobs"
-
+dir_containing_jobs = (
+    os.environ.get("JOBS_PATH") if os.environ.get("JOBS_PATH") != "" else "/jobs"
+)
+print(dir_containing_jobs)
 chunk_size = int(os.environ.get("CHUNK_SIZE"))
-#verbose = os.environ.get("VERBOSE") == "true"
+# verbose = os.environ.get("VERBOSE") == "true"
 dbConnectionString = os.environ.get("DB")
 copy_maps_from_job = os.environ.get("COPY_MAPS_FROM_JOB")
 isDevelopment = os.environ.get("ENVIRONMENT") != "production"
 schema = os.environ.get("SCHEMA_NAME")
-start_at_model = os.environ.get("START_AT_MODEL") if os.environ.get("START_AT_MODEL") != "" else None
-start_at_file = os.environ.get("START_AT_FILE") if os.environ.get("START_AT_FILE") != "" else None
+start_at_model = (
+    os.environ.get("START_AT_MODEL") if os.environ.get("START_AT_MODEL") != "" else None
+)
+start_at_file = (
+    os.environ.get("START_AT_FILE") if os.environ.get("START_AT_FILE") != "" else None
+)
 
 jobs_dir = os.path.abspath(dir_containing_jobs)
-    
+
 if rootDir == None:
     print("No root directory specified")
     exit()
@@ -60,110 +66,106 @@ model_import_actions = {
         "table": "genes",
         "pk_lookup_col": "short_name",
         "fk_map": {},
-        "filters": {
-            "short_name": lambda x: x.upper() if x is not None else None
-        }
+        "filters": {"short_name": lambda x: x.upper() if x is not None else None},
     },
     "transcripts": {
         "name": "transcripts",
         "table": "transcripts",
         "pk_lookup_col": "transcript_id",
-        "fk_map": {"gene": "genes"}
+        "fk_map": {"gene": "genes"},
     },
     "variants": {
         "name": "variants",
-        "table":"variants",
+        "table": "variants",
         "pk_lookup_col": "variant_id",
-        "fk_map": {}
+        "fk_map": {},
     },
     "variants_transcripts": {
         "name": "variants_transcripts",
         "table": "variants_transcripts",
         "pk_lookup_col": ["transcript", "variant"],
-        "fk_map": {"transcript": "transcripts", "variant": "variants"}
+        "fk_map": {"transcript": "transcripts", "variant": "variants"},
     },
     "variants_annotations": {
         "name": "variants_annotations",
         "table": "variants_annotations",
         "pk_lookup_col": None,
         "fk_map": {"DO_COMPOUND_FK": "for variants_transcripts"},
-        "filters":{
-            "hgvsp": lambda x: x.replace("%3D","=") if x is not None else None
-        }
+        "filters": {
+            "hgvsp": lambda x: x.replace("%3D", "=") if x is not None else None
+        },
     },
-#    "severities":{
-#        "name":"severities",
-#        "pk_lookup_col": None,
-#        "fk_map": {},
-#        },
+    #    "severities":{
+    #        "name":"severities",
+    #        "pk_lookup_col": None,
+    #        "fk_map": {},
+    #        },
     "variants_consequences": {
         "name": "variants_consequences",
         "table": "variants_consequences",
         "pk_lookup_col": None,
-        "fk_map": {"DO_COMPOUND_FK": "for variants_transcripts"}
+        "fk_map": {"DO_COMPOUND_FK": "for variants_transcripts"},
     },
     "sv_consequences": {
         "name": "sv_consequences",
         "table": "sv_consequences",
         "pk_lookup_col": None,
-        "fk_map": {"gene": "genes", "variant": "variants"}
+        "fk_map": {"gene": "genes", "variant": "variants"},
     },
     "snvs": {
         "name": "snvs",
         "table": "snvs",
         "pk_lookup_col": None,
         "fk_map": {"variant": "variants"},
-        "filters":{
-            "dbsnp_id": lambda x: x.split('&')[0] if x is not None else None
-        }
-     },
-     "svs": {
-         "name": "svs",
-         "table": "svs",
-         "pk_lookup_col": None,
-         "fk_map": {"variant": "variants"}
-     },
-     "svs_ctx": {
-         "name": "svs_ctx",
-         "table": "svs_ctx",
-         "pk_lookup_col": None,
-         "fk_map": {"variant": "variants"}
-     },
-     "str": {
-         "name": "str",
-         "table": "str",
-         "pk_lookup_col": None,
-         "fk_map": {"variant": "variants"}
-     },
-     "mts": {
-         "name": "mts",
-         "table": "mts",
-         "pk_lookup_col": None,
-         "fk_map": {"variant": "variants"}
-     },
+        "filters": {"dbsnp_id": lambda x: x.split("&")[0] if x is not None else None},
+    },
+    "svs": {
+        "name": "svs",
+        "table": "svs",
+        "pk_lookup_col": None,
+        "fk_map": {"variant": "variants"},
+    },
+    "svs_ctx": {
+        "name": "svs_ctx",
+        "table": "svs_ctx",
+        "pk_lookup_col": None,
+        "fk_map": {"variant": "variants"},
+    },
+    "str": {
+        "name": "str",
+        "table": "str",
+        "pk_lookup_col": None,
+        "fk_map": {"variant": "variants"},
+    },
+    "mts": {
+        "name": "mts",
+        "table": "mts",
+        "pk_lookup_col": None,
+        "fk_map": {"variant": "variants"},
+    },
     "genomic_ibvl_frequencies": {
         "name": "genomic_ibvl_frequencies",
-        "table":"genomic_ibvl_frequencies",
+        "table": "genomic_ibvl_frequencies",
         "pk_lookup_col": None,
-        "fk_map": {"variant": "variants"}
+        "fk_map": {"variant": "variants"},
     },
     "genomic_gnomad_frequencies": {
         "name": "genomic_gnomad_frequencies",
         "table": "genomic_gnomad_frequencies",
         "pk_lookup_col": None,
-        "fk_map": {"variant": "variants"}
+        "fk_map": {"variant": "variants"},
     },
-     "mt_ibvl_frequencies": {
-         "name": "mt_ibvl_frequencies",
-         "table": "mt_ibvl_frequencies",
-         "pk_lookup_col": None,
-         "fk_map": {"variant": "variants"}
-     },
-     "mt_gnomad_frequencies": {
-         "name": "mt_gnomad_frequencies",
-         "table": "mt_gnomad_frequencies",
-         "pk_lookup_col": None,
-         "fk_map": {"variant": "variants"}
+    "mt_ibvl_frequencies": {
+        "name": "mt_ibvl_frequencies",
+        "table": "mt_ibvl_frequencies",
+        "pk_lookup_col": None,
+        "fk_map": {"variant": "variants"},
+    },
+    "mt_gnomad_frequencies": {
+        "name": "mt_gnomad_frequencies",
+        "table": "mt_gnomad_frequencies",
+        "pk_lookup_col": None,
+        "fk_map": {"variant": "variants"},
     },
 }
 
@@ -171,6 +173,7 @@ model_import_actions = {
 pk_maps = {}
 next_id_maps = {}
 tables = {}
+
 
 def load_maps(models=[]):
     try:
@@ -180,11 +183,17 @@ def load_maps(models=[]):
                 pk_maps[modelName] = json.load(f)
             with open(maps_load_dir + "/" + modelName + "_next_id.json", "r") as f:
                 next_id_maps[modelName] = json.load(f)
-            log_output("loaded map for " + modelName +". number of records: " + str(len(pk_maps[modelName])))
+            log_output(
+                "loaded map for "
+                + modelName
+                + ". number of records: "
+                + str(len(pk_maps[modelName]))
+            )
 
     except FileNotFoundError:
         pk_maps[modelName] = {}
         pass
+
 
 def append_to_map(modelName, key, value):
     if modelName not in pk_maps:
@@ -193,20 +202,22 @@ def append_to_map(modelName, key, value):
     if key not in pk_maps[modelName]:
         pk_maps[modelName][key] = value
 
+
 def persist_and_unload_maps():
     try:
         for modelName, pk_map in pk_maps.items():
             log_output("saving pk map for " + modelName)
-            with open(os.path.join(job_dir,modelName+"_pk_map.json"), "w") as f:
+            with open(os.path.join(job_dir, modelName + "_pk_map.json"), "w") as f:
                 json.dump(pk_map, f)
         for modelName, next_id in next_id_maps.items():
-            with open(os.path.join(job_dir, modelName+"_next_id.json"), "w") as f:
+            with open(os.path.join(job_dir, modelName + "_next_id.json"), "w") as f:
                 json.dump(next_id, f)
     except Exception as e:
         log_data_issue("Error saving maps")
         quit()
     pk_maps.clear()
     log_output("cleared the pk maps")
+
 
 def resolve_PK(referencedModel, name):
     if name is None:
@@ -216,6 +227,7 @@ def resolve_PK(referencedModel, name):
         return result
     except KeyError:
         return None
+
 
 def get_table(model):
     global tables
@@ -229,9 +241,10 @@ def get_table(model):
             table = Table(table_name, metadata, autoload_with=engine)
         tables[table_name] = table
         return table
-    
+
+
 def inject(model, data, map_key):
-# need to dynamically inject the single obj that was missing from original data
+    # need to dynamically inject the single obj that was missing from original data
     pk = None
     table = get_table(model)
     with engine.connect() as connection:
@@ -240,20 +253,21 @@ def inject(model, data, map_key):
             data["id"] = id
             connection.execute(table.insert(), data)
             connection.commit()
-#            pk = result.inserted_primary_key[0]
+            #            pk = result.inserted_primary_key[0]
             append_to_map(model, map_key, id)
-            next_id_maps[model]  = id + 1
+            next_id_maps[model] = id + 1
             log_data_issue(f"dynamically added to {model}: {data}")
             pk = id
         except IntegrityError as e:
             log_data_issue("a dynamically injected obj had an integrity error.")
             log_data_issue(e)
-#                                quit() # LATER: comment this out
+        #                                quit() # LATER: comment this out
         except Exception as e:
             log_data_issue("a dynamically injected obj had an error.")
             log_data_issue(e)
-#                                quit() # LATER: comment this out?
+    #                                quit() # LATER: comment this out?
     return pk
+
 
 def import_file(file, file_info, action_info):
     name = action_info.get("name")
@@ -277,7 +291,7 @@ def import_file(file, file_info, action_info):
 
     df = readTSV(file, file_info, dtype=types_dict)
     df.replace(np.nan, None, inplace=True)
-    
+
     data_list = []
     for index, row in df.iterrows():
         data = row.to_dict()
@@ -309,17 +323,29 @@ def import_file(file, file_info, action_info):
                 else:
                     resolved_pk = resolve_PK(fk_model, map_key)
                     ## resolved PK was not found from maps, so.. if it's a gene, we could dynamically inject
-                    if (resolved_pk == None and fk_col == "gene" and name == "transcripts"):
-                        resolved_pk = inject("genes",{"short_name":map_key}, map_key)
-                    elif (resolved_pk == None and fk_col == "variant" and name in ["sv_consequences", "svs", "snvs", "mts"]):
-                        
-                        if (name == "sv_consequences" or name == "svs"):
+                    if (
+                        resolved_pk == None
+                        and fk_col == "gene"
+                        and name == "transcripts"
+                    ):
+                        resolved_pk = inject("genes", {"short_name": map_key}, map_key)
+                    elif (
+                        resolved_pk == None
+                        and fk_col == "variant"
+                        and name in ["sv_consequences", "svs", "snvs", "mts"]
+                    ):
+
+                        if name == "sv_consequences" or name == "svs":
                             var_type = "SV"
-                        elif (name == "snvs"):
+                        elif name == "snvs":
                             var_type = "SNV"
-                        elif (name == "mts"):
+                        elif name == "mts":
                             var_type = "MT"
-                        resolved_pk = inject("variants",{"variant_id":map_key, "var_type": var_type}, map_key)
+                        resolved_pk = inject(
+                            "variants",
+                            {"variant_id": map_key, "var_type": var_type},
+                            map_key,
+                        )
             if map_key is not None and False:
                 log_output(
                     "resolved "
@@ -333,14 +359,19 @@ def import_file(file, file_info, action_info):
                 data[fk_col] = resolved_pk
             else:
                 log_data_issue(
-                    "Missing "
-                    + fk_col if fk_col is not None else "None"
-                    + " "
-                    + map_key if map_key is not None else "None"
-                    + " referenced from "
-                    + name if name is not None else "None"
+                    "Missing " + fk_col
+                    if fk_col is not None
+                    else (
+                        "None" + " " + map_key
+                        if map_key is not None
+                        else (
+                            "None" + " referenced from " + name
+                            if name is not None
+                            else "None"
+                        )
+                    )
                 )
-                if (debug_row is not None):
+                if debug_row is not None:
                     log_data_issue(debug_row)
                 else:
                     log_data_issue(data)
@@ -350,9 +381,18 @@ def import_file(file, file_info, action_info):
             continue
         ########### added in v2
         for col in data:
-            if col in table.columns and isinstance(table.columns[col].type, String) and data[col] is None:
+            if (
+                col in table.columns
+                and isinstance(table.columns[col].type, String)
+                and data[col] is None
+            ):
                 data[col] = ""
-                print("replaced None with empty string. col: " + col + " value: " + str(data[col]))
+                print(
+                    "replaced None with empty string. col: "
+                    + col
+                    + " value: "
+                    + str(data[col])
+                )
         for table_col in table.columns:
             if table_col.name not in data:
                 if isinstance(table_col.type, String):
@@ -362,7 +402,7 @@ def import_file(file, file_info, action_info):
                     data[table_col.name] = None
                     print("filled missing col " + table_col.name + " with None")
         ############ end added in v2
-        
+
         data_list.append(data)
 
     # dispose of df to save ram
@@ -377,7 +417,7 @@ def import_file(file, file_info, action_info):
         for chunk in chunks(data_list, chunk_size):
             try:
                 connection.execute(table.insert(), chunk)
-                #commit
+                # commit
                 connection.commit()
                 # chunk worked
                 successful_chunks += 1
@@ -397,7 +437,7 @@ def import_file(file, file_info, action_info):
                     except DataError as e:
                         log_data_issue(e)
                         failCount += 1
-#                        quit()
+                    #                        quit()
                     except IntegrityError as e:
                         msg = str(e)
                         if "Duplicate" in msg or "ORA-00001" in msg:
@@ -406,13 +446,13 @@ def import_file(file, file_info, action_info):
                         else:
                             failCount += 1
                             log_data_issue(e)
-#                            quit()
+                    #                            quit()
                     except Exception as e:
-                        
+
                         log_data_issue(e)
                         failCount += 1
-                    ####### added in v2    
-                    if (not did_succeed):
+                    ####### added in v2
+                    if not did_succeed:
                         connection.rollback()
 
             if pk_lookup_col is not None:
@@ -420,12 +460,14 @@ def import_file(file, file_info, action_info):
                 for data in chunk:
                     # record the PKS for each row that was added
                     if isinstance(pk_lookup_col, list):
-#                        log_output(pk_lookup_col)
-#                        log_output(data)
+                        #                        log_output(pk_lookup_col)
+                        #                        log_output(data)
                         map_key = "-".join([str(data[col]) for col in pk_lookup_col])
-                    elif isinstance(pk_lookup_col, str) and isinstance(data[pk_lookup_col], str):
+                    elif isinstance(pk_lookup_col, str) and isinstance(
+                        data[pk_lookup_col], str
+                    ):
                         map_key = data[pk_lookup_col]
-                    
+
                     if map_key not in pk_map:
                         pk_map[map_key] = data["id"]
                     if False:
@@ -444,23 +486,26 @@ def import_file(file, file_info, action_info):
         "fail_chunks": fail_chunks,
     }
 
+
 def cleanup(sig, frame):
     global engine, pk_maps, next_id_maps, tables, metadata, data_issue_logger, output_logger
     log_output("terminating, cleaning up ...")
     log_data_issue("terminating, cleaning up ...")
     persist_and_unload_maps()
     engine.dispose()
-    #garbage collect
+    # garbage collect
     del pk_maps
     del next_id_maps
     del tables
     del metadata
     del data_issue_logger
     del output_logger
-    print('done')
+    print("done")
     sys.exit(0)
 
+
 signal.signal(signal.SIGINT, cleanup)
+
 
 def start(db_engine):
 
@@ -469,7 +514,7 @@ def start(db_engine):
     global job_dir, maps_load_dir, engine, schema
     engine = db_engine
 
-    if isinstance(schema,str) and len(schema) > 0:
+    if isinstance(schema, str) and len(schema) > 0:
         metadata.reflect(bind=engine, schema=schema)
     else:
         metadata.reflect(bind=engine)
@@ -477,10 +522,10 @@ def start(db_engine):
 
     os.makedirs(jobs_dir, exist_ok=True)
     os.makedirs(os.path.join(jobs_dir, "1"), exist_ok=True)
-    
-    without_hidden = [f for f in os.listdir(jobs_dir) if not f.startswith('.')]
+
+    without_hidden = [f for f in os.listdir(jobs_dir) if not f.startswith(".")]
     last_job = int(natsorted(without_hidden)[-1])
-    if (os.listdir(os.path.join(jobs_dir, str(last_job))) == []):
+    if os.listdir(os.path.join(jobs_dir, str(last_job))) == []:
         job_dir = os.path.join(jobs_dir, str(last_job))
     else:
         job_dir = os.path.join(jobs_dir, str(last_job + 1))
@@ -511,16 +556,19 @@ def start(db_engine):
         model_counts["duplicate"] = 0
         model_counts["successful_chunks"] = 0
         model_counts["fail_chunks"] = 0
-        model_directory = os.path.join( rootDir, modelName)
+        model_directory = os.path.join(rootDir, modelName)
 
-
-        if isinstance(start_at_model, str) and modelName != start_at_model and not arrived_at_start_model:
-            log_output("Skipping " + modelName +", until "+start_at_model)
+        if (
+            isinstance(start_at_model, str)
+            and modelName != start_at_model
+            and not arrived_at_start_model
+        ):
+            log_output("Skipping " + modelName + ", until " + start_at_model)
             continue
 
         if isinstance(start_at_model, str) and modelName == start_at_model:
             arrived_at_start_model = True
-        
+
         ######### added in v2. handles case when the pipeline output directory
         # is not a directory of directories of tsv files (ie, per chromosome), but a single directory of tsv files,
         # with one tsv file per model
@@ -529,9 +577,11 @@ def start(db_engine):
 
         if action_info.get("skip") or not os.path.isdir(model_directory):
             if large_model_file_tsv_exists:
-                log_output("using large model tsv file "+ large_model_file_tsv)
+                log_output("using large model tsv file " + large_model_file_tsv)
             else:
-                log_output("Skipping " + modelName + " (expected dir: " + model_directory + ")")
+                log_output(
+                    "Skipping " + modelName + " (expected dir: " + model_directory + ")"
+                )
                 continue
 
         referenced_models = action_info.get("fk_map").values()
@@ -539,7 +589,7 @@ def start(db_engine):
             referenced_models = ["variants_transcripts", "variants", "transcripts"]
         load_maps(models=referenced_models)
         modelNow = datetime.now()
-        
+
         # if modelName not in pk_maps:
         #     pk_maps[modelName] = {}
         if modelName not in next_id_maps:
@@ -549,20 +599,23 @@ def start(db_engine):
             sorted_files = [modelName + ".tsv"]
         else:
             sorted_files = natsorted(
-                [f for f in os.listdir(model_directory) if not f.startswith('.')],
+                [f for f in os.listdir(model_directory) if not f.startswith(".")],
             )
-
 
         for file in sorted_files:
             if file.endswith(".tsv"):
 
-                if isinstance(start_at_file, str) and file != start_at_file and not arrived_at_start_file:
-                    log_output("Skipping " + file +", until "+start_at_file)
+                if (
+                    isinstance(start_at_file, str)
+                    and file != start_at_file
+                    and not arrived_at_start_file
+                ):
+                    log_output("Skipping " + file + ", until " + start_at_file)
                     continue
                 if isinstance(start_at_file, str) and file == start_at_file:
                     arrived_at_start_file = True
-                
-                ######## added in v2. large tsv file handling as explained above.    
+
+                ######## added in v2. large tsv file handling as explained above.
                 if large_model_file_tsv_exists:
                     targetFile = large_model_file_tsv
                 else:
@@ -578,7 +631,7 @@ def start(db_engine):
                     + " rows..."
                 )
                 # log_output(targetFile)
-                if (file_info["total_rows"] == 0):
+                if file_info["total_rows"] == 0:
                     log_output("Skipping empty file")
                     continue
                 results = import_file(
@@ -588,8 +641,15 @@ def start(db_engine):
                 )
                 if results["success"] == 0:
                     log_output("No rows were imported.")
-                    
-                for key in ["success", "fail", "missingRef", "duplicate", "successful_chunks", "fail_chunks"]:
+
+                for key in [
+                    "success",
+                    "fail",
+                    "missingRef",
+                    "duplicate",
+                    "successful_chunks",
+                    "fail_chunks",
+                ]:
                     model_counts[key] += results[key]
                     counts[key] += results[key]
 
@@ -604,9 +664,9 @@ def start(db_engine):
         report_counts(model_counts)
         this_model_index = list(model_import_actions.keys()).index(modelName)
         if this_model_index + 1 < len(model_import_actions.keys()):
-            leftover_models = list(model_import_actions.keys())[this_model_index+1:]
+            leftover_models = list(model_import_actions.keys())[this_model_index + 1 :]
             log_output("\nmodels left still: " + str(leftover_models) + "\n")
-        
+
         persist_and_unload_maps()
     log_output("finished importing IBVL. Time Taken: " + str(datetime.now() - now))
     report_counts(counts)
