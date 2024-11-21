@@ -280,20 +280,14 @@ def import_file(file, file_info, action_info):
                 and data[col] is None
             ):
                 data[col] = ""
-                print(
-                    "replaced None with empty string. col: "
-                    + col
-                    + " value: "
-                    + str(data[col])
-                )
         for table_col in table.columns:
             if table_col.name not in data:
                 if isinstance(table_col.type, String):
                     data[table_col.name] = ""
-                    print("filled missing col " + table_col.name + " with empty string")
+#                    print("filled missing col " + table_col.name + " with empty string")
                 else:
                     data[table_col.name] = None
-                    print("filled missing col " + table_col.name + " with None")
+#                    print("filled missing col " + table_col.name + " with None")
         ############ end added in v2
 
         data_list.append(data)

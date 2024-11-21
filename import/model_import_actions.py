@@ -12,6 +12,9 @@ model_import_actions = {
         "table": "transcripts",
         "pk_lookup_col": "transcript_id",
         "fk_map": {"gene": "genes"},
+        "filters": {
+            "transcript_type": lambda x: x.replace("RefSeq", "R") if x is not None else None,
+        }
     },
     "variants": {
         "name": "variants",
