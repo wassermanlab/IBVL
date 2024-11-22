@@ -1,7 +1,7 @@
 # IBVL
 
 ## this repository is no longer worked on
-### please visit https://github.com/wassermanlab/Variant_catalogue_pipeline for the pipeline and importer
+### please visit https://github.com/wassermanlab/Variant_catalogue_pipeline for the pipeline and importer (publish) script
 ### please visit https://github.com/wassermanlab/variome for the portal web application
 
 ## Repo organization
