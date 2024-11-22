@@ -223,6 +223,7 @@ def import_file(file, file_info, action_info):
                     ):
                         resolved_pk = inject("genes", {"short_name": map_key}, map_key)
                     elif (
+                    ## resolved PK was not found from maps, so.. if it's a variant, we could dynamically inject
                         resolved_pk == None
                         and fk_col == "variant"
                         and name in ["sv_consequences", "svs", "snvs", "mts"]

@@ -1,5 +1,8 @@
 # IBVL
 
+## this repository is no longer worked on
+### please visit https://github.com/wassermanlab/Variant_catalogue_pipeline
+
 ## Repo organization
 
 This repo is intended for Wasserman lab members working on data processing for IBVL.
